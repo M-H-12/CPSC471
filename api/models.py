@@ -226,3 +226,63 @@ class Assignment(models.Model):
     
     
     
+class Student(Person):
+    SIN = models.ForeignKey(Person, on_delete=models.CASCADE)
+    year = models.PositiveSmallIntegerField()
+    grade_average = models.PositiveSmallIntegerField()
+    credits_received = models.PositiveSmallIntegerField()
+
+    def json_data(self, **kwargs):
+        students = {
+            'SIN': self.SIN,
+            'Year': self.year,
+            'Grade_Average': self.grade_average,
+            'Credits_Received': self.credits_received
+        }
+        json_data = super().json_data()
+        json_data.update(students)
+        return json_data
+
+
+class Admin(Staff):
+    SIN = models.ForeignKey(Staff, on_delete=models.CASCADE)
+    position_title = models.CharField()
+
+    def json_data(self, **kwargs):
+        admins = {
+            'SIN': self.SIN,
+            'Position_Title': self.position_title
+        }
+        json_data = super().json_data()
+        json_data.update(admins)
+        return json_data
+
+
+class AdminMeetings(models.Model):
+    SIN = models.ForeignKey(Admin, on_delete=models.CASCADE)
+    meetings = models.CharField()
+
+    def json_data(self, **kwargs):
+        admin_meetings = {
+            'SIN': self.SIN,
+            'Meetings': self.meetings
+        }
+        return admin_meetings
+
+
+class Schedule(models.Model):
+    course_id = models.ForeignKey(Offering, on_delete=models.CASACDE)
+    offering_id = models.ForeignKey(Offering, on_delete=models.CASCADE)
+    SIN = models.ForeignKey(Person, on_delete=models.CASCADE)
+    semester = models.CharField()
+    grade = models.PositiveSmallIntegerField()
+
+    def json_data(self, **kwargs):
+        schedule = {
+            'Course_id': self.course_id,
+            'Offering_id': self.offering_id,
+            'SIN': self.SIN,
+            'Semester': self.semester,
+            'Grade': self.grade
+        }
+        return schedule
