@@ -1,7 +1,7 @@
 
 # Alright, lets do this one last time.
 
-How this will work is that we will have two applications running at the same time. Idk if this will kill your laptop, but tell it that "Bryce Cayanan sends his regards"
+How this will work is that we will have two applications running at the same time. Idk if this will kill your laptop, but I am willing to make that sacrifice.
 One server will be running the React application at localhost:3000, while the other will be running django at localhost:8000
 
 ## How to run two servers
