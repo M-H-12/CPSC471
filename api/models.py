@@ -1,14 +1,34 @@
 from django.db import models
 from polymorphic.models import PolymorphicModel
+from unittest.util import _MAX_LENGTH
 
-class Staff(PolymorphicModel):
-    SIN = models.IntegerField(primary_key=True)
+class Person(PolymorphicModel):
+    SIN = models.IntegerField(primary_key = True)
+    Name = models.CharField()
+    Gender = models.CharField(max_length=1)
+    id = models.IntegerField(max_length=10)
+    Admin_SIN = models.ForeignKey(Admin, on_delete=models.SET_NULL)
+    password = models.CharField(max_length=50)
+    
+    def json_data(self, **kwargs):
+        person = {
+            
+            'SIN': self.SIN,
+            'Name': self.Name,
+            'Gender': self.Gender,
+            'id': self.id,
+            'Admin_SIN': self.Admin_SIN,
+            'password': self.password
+            
+        }
+        return person
+
+class Staff(Person):
     salary = models.IntegerField()
     hired_date = models.DateField()
 
     def json_data(self, **kwargs):
         staff = {
-            'SIN': self.SIN,
             'salary': self.salary,
             'hired_date': self.hired_date
         }
@@ -103,6 +123,42 @@ class Material(models.Model):
         }
         return material
 
+class Textbook(models.Model):
+    Book_no = models.IntegerField(primary_key = True)
+    ISBN = models.IntegerField(primary_key = True)
+    Title = models.CharField()
+    Year = models.IntegerField(max_length=4)
+    Edition = models.IntegerField()
+    Course_id = models.ForeignKey(Prerequisite, on_delete=models.SET_NULL)
+    Student_no = models.ForeignKey(Student, on_delete=models.SET_NULL)
+    
+    def json_data(self):
+        textbook = {
+            
+        'Book_no': self.Book_no,
+        'ISBN': self.ISBN,
+        'Title': self.Title,
+        'Year': self.Year,
+        'Edition': self.Edition,
+        'Course_id': self.Course_id,
+        'Student_no': self.Student_no
+        }
+        return textbook
+
+class Textbook_Author(models.Model):
+    ISBN = models.ForeignKey(Textbook, on_delete=model.CASCADE)
+    Author = models.CharField()
+    
+    def json_data(self):
+        textbook_author = {
+        
+        'ISBN': self.ISBN,
+        'Author': self.Author
+            
+        }
+        return textbook_author
+    
+
 class Course(models.Model):
     course_id = models.IntegerField(primary_key=True)
     course_name = models.CharField(max_length=20)
@@ -144,3 +200,29 @@ class Offering_day_and_time(models.Model):
             'time':self.time.__str__
         }
         return offering_day_and_time
+    
+class Assignment(models.Model):
+    course_id = models.ForeignKey(Course, on_delete=models.CASCADE)
+    offering_id = models.ForeignKey(Offering, on_delete=models.CASCADE)
+    assign_no = models.IntegerField(primary_key = True)
+    start_date = models.DateTimeField()
+    end_date = models.DateTimeField()
+    description = models.CharField(max_length=400)
+    name = models.CharField()
+    
+    def json_data(self, **kwargs):
+        assignment = {
+            
+        'course_id': self.course_id,
+        'offering_id': self.offering_id,
+        'assign_no': self.assign_no,
+        'start_date': self.start_date,
+        'end_date': self.end_date,
+        'description': self.description,
+        'name': self.name
+            
+        }
+        return assignment
+    
+    
+    
