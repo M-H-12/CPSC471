@@ -20,20 +20,6 @@ class Person(PolymorphicModel):
         return person
 
 
-class Staff(Person):
-    salary = models.FloatField()
-    hired_date = models.DateField(editable=False)
-
-    def json_data(self, **kwargs):
-        staff = {
-            'salary': self.salary,
-            'hired_date': self.hired_date.__str__()
-        }
-        json_data = super().json_data()
-        json_data.update(staff)
-        return json_data
-
-
 class Course(models.Model):
     course_id = models.PositiveIntegerField(primary_key=True)
     course_name = models.CharField(max_length=255)
@@ -71,11 +57,17 @@ class Student(Person):
         return json_data
 
 
-class Counselor(Staff):
+class Counselor(Person):
     counsels = models.ManyToManyField(Student, blank=True)
+    salary = models.FloatField()
+    hired_year = models.PositiveIntegerField(editable=False)
+    hired_date = models.PositiveIntegerField(editable=False)
+    hired_month = models.CharField(editable=False, max_length=9, blank=False)
 
     def json_data(self, **kwargs):
         counselor = {
+            'salary': self.salary,
+            'hired_date': str(self.hired_year) + "-" + self.hired_month + "-" + str(self.hired_date),
             'counsels': list(map(lambda student: student.json_data(True), self.counsels.all())),
             'office_hours': list(map(lambda office_hour: office_hour.json_data(True),
                                      self.officehours.all()))
@@ -100,11 +92,17 @@ class CounselorOfficeHour(models.Model):
         return json_data
 
 
-class Teacher(Staff):
+class Teacher(Person):
     can_teach = models.ManyToManyField(Course, blank=True)
+    salary = models.FloatField()
+    hired_year = models.PositiveIntegerField(editable=False)
+    hired_date = models.PositiveIntegerField(editable=False)
+    hired_month = models.CharField(editable=False, max_length=9, blank=False)
 
     def json_data(self, **kwargs):
         teacher = {
+            'salary': self.salary,
+            'hired_date': str(self.hired_year) + "-" + self.hired_month + "-" + str(self.hired_date),
             'can_teach': list(map(lambda course: course.json_data(False), self.can_teach.all())),
             'office_hours': list(map(lambda hours: hours.json_data(True), self.officehours.all()))
         }
@@ -179,12 +177,21 @@ class OfferingDayAndTime(models.Model):
         return offering_day_and_time
 
 
-class Admin(Staff):
+class Admin(Person):
     position_title = models.CharField(max_length=255)
+    salary = models.FloatField()
+    hired_year = models.PositiveIntegerField(editable=False)
+    hired_date = models.PositiveIntegerField(editable=False)
+    hired_month = models.CharField(editable=False, max_length=9, blank=False)
 
     def json_data(self, **kwargs):
+        teacher = {
+            'salary': self.salary,
+            'hired_date': str(self.hired_year) + "-" + self.hired_month + "-" + str(self.hired_date),
+            'position_title': self.position_title
+        }
         json_data = super().json_data()
-        json_data['position_title'] = self.position_title
+        json_data.update(teacher)
         return json_data
 
 
@@ -224,11 +231,14 @@ class TextbookAuthor(models.Model):
 
 class Material(models.Model):
     offering = models.ForeignKey(Offering, on_delete=models.CASCADE, editable=False)
-    material_no = models.PositiveIntegerField(primary_key=True)
+    material_no = models.PositiveIntegerField(editable=False)
     name = models.CharField(max_length=255)
     upload_date = models.DateTimeField(auto_now_add=True, editable=False)
     category = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
+
+    class Meta:
+        unique_together = ('offering', 'material_no',)
 
     def json_data(self):
         material = {
@@ -243,11 +253,14 @@ class Material(models.Model):
 
 class Assignment(models.Model):
     offering = models.ForeignKey(Offering, on_delete=models.CASCADE, editable=False)
-    assign_no = models.PositiveIntegerField(primary_key=True)
+    assign_no = models.PositiveIntegerField(editable=False)
     name = models.CharField(max_length=255)
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
     description = models.TextField(blank=True, null=True)
+
+    class Meta:
+        unique_together = ('offering', 'assign_no',)
 
     def json_data(self, **kwargs):
         assignment = {
