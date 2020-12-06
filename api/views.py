@@ -369,3 +369,101 @@ def textbook():
     response = JsonResponse("error: Request not met.")
     response.status_code = 405
     return response
+
+@csrf_exempt
+def counselor():
+    try:
+        content = json.loads(request.body)['content']
+    except KeyError:
+        return JsonResponse({"error": "Please wrap your request body with 'content' "})
+
+    if request.method == "GET":
+        try:
+            counselor = Counselor.objects.get(pk=content['sin'])
+            return JsonResponse({'response': "success", 'content': counselor.json_data()})
+        except Counselor.DoesNotExist:
+            return JsonResponse({"error": "Counselor with sin " + str(content['sin']) + " does not exist."})
+        except KeyError:
+            return JsonResponse({"error": "No id included"})
+
+    if request.method == "POST":
+        try:
+            counselor = Counselor.objects.create(**content)
+            counselor.full_clean()
+            counselor.save()
+            return JsonResponse({"response": counselor.json_data()})
+        except ValidationError as e:
+            counselor.delete() 
+            return JsonResponse({'error': e.message_dict})
+        except IntegrityError:
+            return JsonResponse({'error': "Object could not be created."})
+
+    if request.method == "PUT":
+        try:
+            counselor = Counselor.objects.get(pk=content['sin'])
+        except Counselor.DoesNotExist:
+            return JsonResponse({"error": "Counselor with sin " + str(content['sin']) + " does not exist."})
+        except KeyError:
+            return JsonResponse({"error": "No sin included"})
+
+        try:
+            for attr, value in content.items():
+                setattr(counselor, attr, value)
+            counselor.full_clean()
+            counselor.save()
+            return JsonResponse({'response': "success", 'content': counselor.json_data()})
+        except ValidationError as e:
+            return JsonResponse({'error': e.message_dict})
+
+    if request.method == "DELETE":
+        try:
+            counselor = Counselor.objects.get(pk=content['sin'])
+            counselor.delete()
+            return JsonResponse({'response': str(counselor.name) + ' has been deleted.'})
+        except Counselor.DoesNotExist:
+            return JsonResponse({"error": "Counselor with sin " + str(content['sin']) + " does not exist."})
+
+    response = JsonResponse({'error': "Request not met."})
+    response.status_code = 405
+    return response
+
+@csrf_exempt
+def room():
+    try:
+        content = json.loads(request.body)['content']
+    except KeyError:
+        return JsonResponse({"error": "Please wrap your request body with 'content' "})
+
+    if request.method == "GET":
+        room = Room.objects.get(pk=content['room_no'])
+        return JsonResponse({"response": room.json_data()})
+
+    if request.method == "POST":
+        try:
+            room = Room.objects.create(**content)
+            room.full_clean()
+            room.save()
+            return JsonResponse({"response": room.json_data()})
+        except ValidationError as e:
+            room.delete()
+            return JsonResponse({'error': e.message_dict})
+
+    if request.method == "PUT":
+        room = Room.objects.get(pk=content['room_no'])
+        try:
+            for attr, value in content.items():
+                setattr(room, attr, value)
+            room.full_clean()
+            room.save()
+            return JsonResponse({'response': "success", 'content': room.json_data()})
+        except ValidationError as e:
+            return JsonResponse({'error': e.message_dict})
+
+    if request.method == "DELETE":
+        room = Room.objects.get(pk=content['room_no'])
+        room.delete()
+        return JsonResponse({'response': 'success'})
+
+    response = JsonResponse({'error': "Request not met."})
+    response.status_code = 405
+    return response
