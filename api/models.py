@@ -3,7 +3,7 @@ from polymorphic.models import PolymorphicModel
 from unittest.util import _MAX_LENGTH
 
 class Person(PolymorphicModel):
-    SIN = models.IntegerField(primary_key = True)
+    SIN = models.IntegerField(primary_key=True)
     Name = models.CharField()
     Gender = models.CharField(max_length=1)
     id = models.IntegerField(max_length=10)
@@ -13,11 +13,11 @@ class Person(PolymorphicModel):
     def json_data(self, **kwargs):
         person = {
             
-            'SIN': self.SIN,
-            'Name': self.Name,
-            'Gender': self.Gender,
+            'sin': self.SIN,
+            'name': self.Name,
+            'gender': self.Gender,
             'id': self.id,
-            'Admin_SIN': self.Admin_SIN,
+            'admin_sin': self.Admin_SIN,
             'password': self.password
             
         }
@@ -123,9 +123,10 @@ class Material(models.Model):
         }
         return material
 
+
 class Textbook(models.Model):
-    Book_no = models.IntegerField(primary_key = True)
-    ISBN = models.IntegerField(primary_key = True)
+    Book_no = models.IntegerField(primary_key=True)
+    ISBN = models.IntegerField(primary_key=True)
     Title = models.CharField()
     Year = models.IntegerField(max_length=4)
     Edition = models.IntegerField()
@@ -135,13 +136,13 @@ class Textbook(models.Model):
     def json_data(self):
         textbook = {
             
-        'Book_no': self.Book_no,
-        'ISBN': self.ISBN,
-        'Title': self.Title,
-        'Year': self.Year,
-        'Edition': self.Edition,
-        'Course_id': self.Course_id,
-        'Student_no': self.Student_no
+        'book_no': self.Book_no,
+        'isbn': self.ISBN,
+        'title': self.Title,
+        'year': self.Year,
+        'edition': self.Edition,
+        'course_id': self.Course_id,
+        'student_no': self.Student_no
         }
         return textbook
 
@@ -152,8 +153,8 @@ class Textbook_Author(models.Model):
     def json_data(self):
         textbook_author = {
         
-        'ISBN': self.ISBN,
-        'Author': self.Author
+        'isbn': self.ISBN,
+        'author': self.Author
             
         }
         return textbook_author
@@ -234,10 +235,10 @@ class Student(Person):
 
     def json_data(self, **kwargs):
         students = {
-            'SIN': self.SIN,
-            'Year': self.year,
-            'Grade_Average': self.grade_average,
-            'Credits_Received': self.credits_received
+            'sin': self.SIN,
+            'year': self.year,
+            'grade_average': self.grade_average,
+            'credits_received': self.credits_received
         }
         json_data = super().json_data()
         json_data.update(students)
@@ -250,8 +251,8 @@ class Admin(Staff):
 
     def json_data(self, **kwargs):
         admins = {
-            'SIN': self.SIN,
-            'Position_Title': self.position_title
+            'sin': self.SIN,
+            'position_title': self.position_title
         }
         json_data = super().json_data()
         json_data.update(admins)
@@ -264,8 +265,8 @@ class AdminMeetings(models.Model):
 
     def json_data(self, **kwargs):
         admin_meetings = {
-            'SIN': self.SIN,
-            'Meetings': self.meetings
+            'sin': self.SIN,
+            'meetings': self.meetings
         }
         return admin_meetings
 
@@ -279,10 +280,10 @@ class Schedule(models.Model):
 
     def json_data(self, **kwargs):
         schedule = {
-            'Course_id': self.course_id,
-            'Offering_id': self.offering_id,
-            'SIN': self.SIN,
-            'Semester': self.semester,
-            'Grade': self.grade
+            'course_id': self.course_id,
+            'offering_id': self.offering_id,
+            'sin': self.SIN,
+            'semester': self.semester,
+            'grade': self.grade
         }
         return schedule
