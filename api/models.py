@@ -1,47 +1,84 @@
 from django.db import models
 from polymorphic.models import PolymorphicModel
-from unittest.util import _MAX_LENGTH
+
 
 class Person(PolymorphicModel):
-    SIN = models.IntegerField(primary_key=True)
-    Name = models.CharField()
-    Gender = models.CharField(max_length=1)
-    id = models.IntegerField(max_length=10)
-    Admin_SIN = models.ForeignKey(Admin, on_delete=models.SET_NULL)
+    sin = models.PositiveIntegerField(primary_key=True)  # FIXME Restrict to only being 9 in length
+    name = models.CharField(max_length=255)
+    gender = models.CharField(max_length=1)
+    id = models.PositiveIntegerField(unique=True)
     password = models.CharField(max_length=50)
-    
+
     def json_data(self, **kwargs):
         person = {
-            
-            'sin': self.SIN,
-            'name': self.Name,
-            'gender': self.Gender,
+            'sin': self.sin,
+            'name': self.name,
+            'gender': self.gender,
             'id': self.id,
-            'admin_sin': self.Admin_SIN,
             'password': self.password
-            
         }
         return person
 
+
 class Staff(Person):
-    salary = models.IntegerField()
-    hired_date = models.DateField()
+    salary = models.FloatField()
+    hired_date = models.DateField(editable=False)
 
     def json_data(self, **kwargs):
         staff = {
             'salary': self.salary,
-            'hired_date': self.hired_date
+            'hired_date': self.hired_date.__str__()
         }
-        return staff
+        json_data = super().json_data()
+        json_data.update(staff)
+        return json_data
+
+
+class Course(models.Model):
+    course_id = models.PositiveIntegerField(primary_key=True)
+    course_name = models.CharField(max_length=255)
+    parent = models.ForeignKey('self', related_name='prerequisites',
+                               on_delete=models.SET_NULL, blank=True, null=True)
+
+    def json_data(self, include_prerequisites=False, **kwargs):
+        course = {
+            'course_id': self.course_id,
+            'course_name': self.course_name,
+            'offerings': list(map(lambda offering: offering.json_data(include_course_info=False, include_room=True),
+                                  self.offerings.all())),
+            'required_textbooks': list(map(lambda textbook: textbook.json_data(True), self.required_textbooks.all()))
+        }
+        if include_prerequisites:
+            course['prerequisites'] = list(map(lambda prereq: prereq.json_data(False), self.prerequisites.all()))
+        return course
+
+
+class Student(Person):
+    year = models.PositiveSmallIntegerField()
+    grade_average = models.PositiveSmallIntegerField()
+    credits_received = models.PositiveSmallIntegerField()
+
+    def json_data(self, **kwargs):
+        students = {
+            'year': self.year,
+            'grade_average': self.grade_average,
+            'credits_received': self.credits_received,
+            'signed_out_textbooks': list(
+                map(lambda textbook: textbook.json_data(True), self.signed_out_textbooks.all()))
+        }
+        json_data = super().json_data()
+        json_data.update(students)
+        return json_data
+
 
 class Counselor(Staff):
     counsels = models.ManyToManyField(Student, blank=True)
 
-    def json_data(self):
+    def json_data(self, **kwargs):
         counselor = {
             'counsels': list(map(lambda student: student.json_data(True), self.counsels.all())),
             'office_hours': list(map(lambda office_hour: office_hour.json_data(True),
-                                     self.counselorofficehour_set.all()))
+                                     self.officehours.all()))
         }
         json_data = super().json_data()
         json_data.update(counselor)
@@ -49,12 +86,12 @@ class Counselor(Staff):
 
 
 class CounselorOfficeHour(models.Model):
-    counselor = models.ForeignKey(Counselor, on_delete=models.CASCADE)
+    counselor = models.ForeignKey(Counselor, related_name='officehours', on_delete=models.CASCADE)
     day = models.CharField(max_length=9)
-    hour_from = models.PositiveSmallIntegerField()
+    hour_from = models.PositiveSmallIntegerField()  # TODO Make sure hour_from and hour_to are <= 23
     hour_to = models.PositiveSmallIntegerField()
 
-    def json_data(self):
+    def json_data(self, **kwargs):
         json_data = {
             'day': self.day,
             'hour_from': self.hour_from,
@@ -66,10 +103,10 @@ class CounselorOfficeHour(models.Model):
 class Teacher(Staff):
     can_teach = models.ManyToManyField(Course, blank=True)
 
-    def json_data(self):
+    def json_data(self, **kwargs):
         teacher = {
-            'can_teach': list(map(lambda course: course.json_data(True), self.can_teach.all())),
-            'office_hours': list(map(lambda hours: hours.json_data(True), self.teacherofficehour_set.all()))
+            'can_teach': list(map(lambda course: course.json_data(False), self.can_teach.all())),
+            'office_hours': list(map(lambda hours: hours.json_data(True), self.officehours.all()))
         }
         json_data = super().json_data()
         json_data.update(teacher)
@@ -77,213 +114,166 @@ class Teacher(Staff):
 
 
 class TeacherOfficeHour(models.Model):
-    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+    teacher = models.ForeignKey(Teacher, related_name='officehours', on_delete=models.CASCADE)
     day = models.CharField(max_length=9)
-    hour_from = models.PositiveSmallIntegerField()
+    hour_from = models.PositiveSmallIntegerField()  # TODO Make sure hour_from and hour_to are <= 23
     hour_to = models.PositiveSmallIntegerField()
 
-    def json_data(self):
-        hours = {
+    def json_data(self, **kwargs):
+        json_data = {
             'day': self.day,
             'hour_from': self.hour_from,
             'hour_to': self.hour_to
         }
-        return hours
+        return json_data
 
 
 class Room(models.Model):
-    room_no = models.IntegerField()  # TODO Determine if blank=false
-    max_capacity = models.IntegerField()  # TODO Determine if blank=false
+    room_no = models.PositiveIntegerField(primary_key=True)
+    max_capacity = models.PositiveIntegerField()  # TODO Set maximum
 
     def json_data(self):
         room = {
             'room_no': self.room_no,
-            'max_capacity': self.max_capacity
-            #  'schedule': list(map(lambda timeslot: timeslot.json_data(True), self.offering_set.all()))
+            'max_capacity': self.max_capacity,
+            'schedule': list(map(lambda timeslot: timeslot.json_data(include_course_info=True, include_room=False),
+                                 self.timeslots.all()))
         }
         return room
 
 
+class Offering(models.Model):
+    course = models.ForeignKey(Course, related_name='offerings', on_delete=models.CASCADE)
+    offering_no = models.PositiveIntegerField()
+    no_of_students = models.PositiveIntegerField()
+    room = models.ForeignKey(Room, related_name="timeslots", on_delete=models.SET_NULL, blank=True, null=True)
+
+    class Meta:
+        unique_together = ('course', 'offering_no',)
+
+    def json_data(self, include_course_info=False, include_room=False, **kwargs):
+        offering = {
+            'offering_no': self.offering_no,
+            'no_of_students': self.no_of_students,
+            'times': list(map(lambda time: time.json_data(True), self.times.all()))
+        }
+        if include_course_info:
+            offering['course_id'] = self.course.course_name
+        if self.room and include_room:
+            offering['room_no'] = self.room.room_no
+        return offering
+
+
+class OfferingDayAndTime(models.Model):
+    offering = models.ForeignKey(Offering, related_name='times', on_delete=models.CASCADE)
+    day = models.CharField(max_length=9)
+    hour_from = models.PositiveSmallIntegerField()  # TODO Make sure hour_from and hour_to are <= 23
+    hour_to = models.PositiveSmallIntegerField()
+
+    def json_data(self, **kwargs):
+        offering_day_and_time = {
+            'day': self.day,
+            'hour_from': self.hour_from,
+            'hour_to': self.hour_to
+        }
+        return offering_day_and_time
+
+
+class Admin(Staff):
+    position_title = models.CharField(max_length=255)
+
+    def json_data(self, **kwargs):
+        json_data = super().json_data()
+        json_data['position_title'] = self.position_title
+        return json_data
+
+
+class Textbook(models.Model):
+    isbn = models.IntegerField(primary_key=True)  # TODO Set length to 10
+    book_no = models.IntegerField()
+    title = models.CharField(max_length=255)
+    year = models.IntegerField()  # TODO Set length to 4
+    edition = models.IntegerField()
+    course = models.ForeignKey(Course, related_name='required_textbooks', on_delete=models.SET_NULL, blank=True,
+                               null=True)
+    student = models.ForeignKey(Student, related_name='signed_out_textbooks', on_delete=models.SET_NULL, blank=True,
+                                null=True)
+
+    class Meta:
+        unique_together = ('isbn', 'book_no',)
+
+    def json_data(self):
+        textbook = {
+            'isbn': self.isbn,
+            'book_no': self.book_no,
+            'title': self.title,
+            'year': self.year,
+            'edition': self.edition,
+            'authors': list(map(lambda author: author.get_author(), self.authors.all()))
+        }
+        return textbook
+
+
+class TextbookAuthor(models.Model):
+    textbook = models.ForeignKey(Textbook, related_name='authors', on_delete=models.CASCADE)
+    author = models.CharField(max_length=255)
+
+    def get_author(self):
+        return self.author
+
+
 class Material(models.Model):
-    course_id = models.ForeignKey(Course, on_delete=models.CASCADE)
-    offering_no = models.ForeignKey(Offering, on_delete=models.CASCADE)
-    material_no = models.IntegerField()
-    name = models.CharField()
-    upload_date = models.DateTimeField(auto_now_add=True)
-    category = models.CharField()
-    description = models.CharField(blank=True)
+    offering = models.ForeignKey(Offering, on_delete=models.CASCADE, editable=False)
+    material_no = models.PositiveIntegerField(primary_key=True)
+    name = models.CharField(max_length=255)
+    upload_date = models.DateTimeField(auto_now_add=True, editable=False)
+    category = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
 
     def json_data(self):
         material = {
             'material_no': self.material_no,
             'name': self.name.__str__(),
-            'upload_date': self.upload_date,
-            'category': self.category.__str__(),
-            'description': self.description.__str__()
+            'upload_date': self.upload_date.__str__(),
+            'category': self.category,
+            'description': self.description
         }
         return material
 
 
-class Textbook(models.Model):
-    Book_no = models.IntegerField(primary_key=True)
-    ISBN = models.IntegerField(primary_key=True)
-    Title = models.CharField()
-    Year = models.IntegerField(max_length=4)
-    Edition = models.IntegerField()
-    Course_id = models.ForeignKey(Prerequisite, on_delete=models.SET_NULL)
-    Student_no = models.ForeignKey(Student, on_delete=models.SET_NULL)
-    
-    def json_data(self):
-        textbook = {
-            
-        'book_no': self.Book_no,
-        'isbn': self.ISBN,
-        'title': self.Title,
-        'year': self.Year,
-        'edition': self.Edition,
-        'course_id': self.Course_id,
-        'student_no': self.Student_no
-        }
-        return textbook
-
-class Textbook_Author(models.Model):
-    ISBN = models.ForeignKey(Textbook, on_delete=model.CASCADE)
-    Author = models.CharField()
-    
-    def json_data(self):
-        textbook_author = {
-        
-        'isbn': self.ISBN,
-        'author': self.Author
-            
-        }
-        return textbook_author
-    
-
-class Course(models.Model):
-    course_id = models.IntegerField(primary_key=True)
-    course_name = models.CharField(max_length=20)
-    Prerequisite = models.ForeignKey('self', related_name='course', on_delete=models.CASCADE)
-
-    def json_data(self, **kwargs):
-        course = {
-            'course_id': self.course_id,
-            'course_name': self.course_name.__str__
-        }
-        return course
-
-class Offering(models.Model):
-    course_id = models.ForeignKey(Course, on_delete=models.CASCADE)
-    offering_no = models.IntegerField()
-    no_of_students = models.IntegerField()
-    room_no = models.IntegerField()
-
-    def json_data(self, **kwargs):
-        offering = {
-            'course_id': self.course_id,
-            'offering_no': self.offering_no,
-            'no_of_students': self.no_of_students,
-            'room_no': self.room_no
-        }
-        return offering
-
-class Offering_day_and_time(models.Model):
-    course_id = models.ForeignKey(Course, on_delete=models.CASCADE)
-    offering_no = models.IntegerField()
-    day = models.CharField()
-    time = models.CharField()
-
-    def json_data(self, **kwargs):
-        offering_day_and_time = {
-            'course_id': self.course_id,
-            'offering_no': self.offering_no,
-            'day': self.day.__str__,
-            'time':self.time.__str__
-        }
-        return offering_day_and_time
-    
 class Assignment(models.Model):
-    course_id = models.ForeignKey(Course, on_delete=models.CASCADE)
-    offering_id = models.ForeignKey(Offering, on_delete=models.CASCADE)
-    assign_no = models.IntegerField(primary_key = True)
+    offering = models.ForeignKey(Offering, on_delete=models.CASCADE, editable=False)
+    assign_no = models.PositiveIntegerField(primary_key=True)
+    name = models.CharField(max_length=255)
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
-    description = models.CharField(max_length=400)
-    name = models.CharField()
-    
+    description = models.TextField(blank=True, null=True)
+
     def json_data(self, **kwargs):
         assignment = {
-            
-        'course_id': self.course_id,
-        'offering_id': self.offering_id,
-        'assign_no': self.assign_no,
-        'start_date': self.start_date,
-        'end_date': self.end_date,
-        'description': self.description,
-        'name': self.name
-            
+            'assign_no': self.assign_no,
+            'name': self.name,
+            'start_date': self.start_date.__str__(),
+            'end_date': self.end_date.__str__(),
+            'description': self.description,
         }
         return assignment
-    
-    
-    
-class Student(Person):
-    SIN = models.ForeignKey(Person, on_delete=models.CASCADE)
-    year = models.PositiveSmallIntegerField()
-    grade_average = models.PositiveSmallIntegerField()
-    credits_received = models.PositiveSmallIntegerField()
-
-    def json_data(self, **kwargs):
-        students = {
-            'sin': self.SIN,
-            'year': self.year,
-            'grade_average': self.grade_average,
-            'credits_received': self.credits_received
-        }
-        json_data = super().json_data()
-        json_data.update(students)
-        return json_data
-
-
-class Admin(Staff):
-    SIN = models.ForeignKey(Staff, on_delete=models.CASCADE)
-    position_title = models.CharField()
-
-    def json_data(self, **kwargs):
-        admins = {
-            'sin': self.SIN,
-            'position_title': self.position_title
-        }
-        json_data = super().json_data()
-        json_data.update(admins)
-        return json_data
-
-
-class AdminMeetings(models.Model):
-    SIN = models.ForeignKey(Admin, on_delete=models.CASCADE)
-    meetings = models.CharField()
-
-    def json_data(self, **kwargs):
-        admin_meetings = {
-            'sin': self.SIN,
-            'meetings': self.meetings
-        }
-        return admin_meetings
 
 
 class Schedule(models.Model):
-    course_id = models.ForeignKey(Offering, on_delete=models.CASACDE)
-    offering_id = models.ForeignKey(Offering, on_delete=models.CASCADE)
-    SIN = models.ForeignKey(Person, on_delete=models.CASCADE)
-    semester = models.CharField()
+    offering = models.ForeignKey(Offering, on_delete=models.CASCADE)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    semester = models.CharField(max_length=255)
     grade = models.PositiveSmallIntegerField()
+
+    class Meta:
+        unique_together = ('offering', 'student',)
 
     def json_data(self, **kwargs):
         schedule = {
-            'course_id': self.course_id,
-            'offering_id': self.offering_id,
-            'sin': self.SIN,
             'semester': self.semester,
             'grade': self.grade
         }
-        return schedule
+        json_data = self.offering.json_data(include_course_info=True, include_room=False)
+        json_data.update(schedule)
+        return json_data
