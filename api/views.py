@@ -155,174 +155,76 @@ def prerequisite(request):
     return response
 
 
+def course_data(request):
+    return HttpResponse("Hello, world. You're at the polls index.")
+    #return JsonResponse()
 
 
-"""
-@csrf_exempt
-def assignment(request):
-    try:
-        content = json.loads(request.body)['content']
-    except KeyError:
-        return JsonResponse({"error": "Please wrap your request body with 'content' "})
+def create_course(request):
+    if request.method != "POST":
+        response = JsonResponse({'error': 'This endpoint can only be accessed with POST'})
+        response.status_code = 400
+        return response
 
-    if request.method == "GET":
-        try:
-            assignment = Assignment.objects.get(pk=content['assign_no'])
-            return JsonResponse({"response": assignment.json_data()})
-        except Assignment.DoesNotExist:
-            return JsonResponse(
-                {"error": "Assignment with assign_no " + str(content['assign_no']) + " does not exist."})
-
-    if request.method == "POST":
-        try:  # TODO Find out if this works
-            assignment = Assignment.objects.create(**content)
-            assignment.full_clean()
-            assignment.save()
-            return JsonResponse({"response": assignment.json_data()})
-        except ValidationError as e:
-            assignment.delete()
-            return JsonResponse({'error': e.message_dict})
-        except IntegrityError:
-            return JsonResponse({'error': "Object could not be created."})
-
-    if request.method == "DELETE":
-        try:
-            assignment = Assignment.objects.get(pk=content['assign_no'])
-            assignment.delete()
-            return JsonResponse({'response': 'success'})
-        except Assignment.DoesNotExist:
-            return JsonResponse(
-                {"error": "Assignment with assign_no " + str(content['assign_no']) + " does not exist."})
-        except ProtectedError:
-            return {'error': "Couldn't delete object " + str(instance.id)}
-
-    response = JsonResponse({'error': "Request not met."})
-    response.status_code = 405
-    return response
-
-"""
-
-"""
-
-from django.shortcuts import render
-from django.http import HttpResponse, JsonResponse
-import json
-from . import models
-from django.views.decorators.csrf import csrf_exempt
-
-
-# Create your views here.
-
-@csrf_exempt 
-def admin(request):
     content = json.loads(request.body)['content']
 
+
+def student():
+    inputInfo = json.loads(request.body)['content']
     if request.method == "GET":
         try:
-            administrator = Admin.objects.get(pk=content['sin'])
-            return JsonResponse({"response" :administator.json_data()})
-        except Admin.DoesNotExist:
-            return JsonResponse({"error": "Admin with sin " + str(content['sin']) + " does not exist."})
-
-    if request.method == "POST":
-        try:
-            administrator = Admin.objects.create(**content)
-            administrator.full_clean()
-            administrator.save()
-            return JsonResponse({"response" :administator.json_data()})
-        except ValidationError as e:
-            administator.delete()
-            return JsonResponse({'error': e.message_dict})
-        except IntegrityError:
-            return JsonResponse({'error': "Object could not be created."})
+            student1 = Student.objects.get(sin=inputInfo['sin'])
+            return JsonResponse("response: "+student1.json_data())
+        except Student.DoesNotExist:
+            return JsonResponse("error: Student with SIN:"+str(content['sin'])+" does not exist.")
+    if request.method == "PUT":
+        student1 = Student.objects.get(sin=inputInfo['sin'], year=inputInfo['year'],
+                                       grade_average=inputInfo['grade_average'],
+                                       credits_received=inputInfo['credits_received'])
+        student1.save()
 
     if request.method == "DELETE":
         try:
-            administrator = Admin.objects.get(pk=content['sin'])
-            administator.delete()
-            return JsonResponse({'response': 'success'})
-        except Admin.DoesNotExist:
-            return JsonResponse({"error": "Admin with sin " + str(content['sin']) + " does not exist."})
+            student1 = Student.objects.get(sin=inputInfo['sin'])
+            student1.delete()
+            return JsonResponse("response: Success")
+        except Student.DoesNotExist:
+            return JsonResponse("error: Student with SIN: "+str(content['sin'])+" does not exist.")
         except ProtectedError:
-            return {'error': "Couldn't delete object " + str(instance.id)}
+            return JsonResponse("error: Cannot delete student "+str(instance.id))
 
-    response = JsonResponse({'error': "Request not met."})
-    response.status_code = 405
-    return response
-
-@csrf_exempt 
-def assignment(request):
-    content = json.loads(request.body)['content']
-
-    if request.method == "GET":
-        try:
-            assignment = Assignment.objects.get(pk=content['assign_no'])
-            return JsonResponse({"response" :assignment.json_data()})
-        except Assignment.DoesNotExist:
-            return JsonResponse({"error": "Assignment with assign_no " + str(content['assign_no']) + " does not exist."})
-
-    if request.method == "POST":
-        try: #TODO Find out if this works
-            assignment = Assignment.objects.create(**content)
-            assignment.full_clean()
-            assignment.save()
-            return JsonResponse({"response" :assignment.json_data()})
-        except ValidationError as e:
-            assignment.delete()
-            return JsonResponse({'error': e.message_dict})
-        except IntegrityError:
-            return JsonResponse({'error': "Object could not be created."})
-
-    if request.method == "DELETE":
-        try:
-            assignment = Assignment.objects.get(pk=content['assign_no'])
-            assignment.delete()
-            return JsonResponse({'response': 'success'})
-        except Assignment.DoesNotExist:
-            return JsonResponse({"error": "Assignment with assign_no " + str(content['assign_no']) + " does not exist."})
-        except ProtectedError:
-            return {'error': "Couldn't delete object " + str(instance.id)}
-
-    response = JsonResponse({'error': "Request not met."})
+    response = JsonResponse("error: Request not met.")
     response.status_code = 405
     return response
 
 
-@csrf_exempt 
-def material(request):
-    content = json.loads(request.body)['content']
-
+def textbook():
+    inputInfo = json.loads(request.body)['content']
     if request.method == "GET":
         try:
-            material = Material.objects.get(pk=content['material_no'])
-            return JsonResponse({"response" :material.json_data()})
-        except Material.DoesNotExist:
-            return JsonResponse({"error": "Material with material_no " + str(content['material_no']) + " does not exist."})
+            textbook1 = Textbook.objects.get(book_no=inputInfo['book_no'], isbn=inputInfo['isbn'])
+            return JsonResponse("response: "+textbook1.json_data())
+        except Textbook.DoesNotExist:
+            return JsonResponse("error: Textbook with key:"+str(content['book_no'])+
+                                ","+str(content['isbn'])+" does not exist.")
 
-    if request.method == "POST":
-        try: #TODO Find out if this works
-            material = Material.objects.create(**content)
-            material.full_clean()
-            material.save()
-            return JsonResponse({"response" :material.json_data()})
-        except ValidationError as e:
-            material.delete()
-            return JsonResponse({'error': e.message_dict})
-        except IntegrityError:
-            return JsonResponse({'error': "Object could not be created."})
+    if request.method == "PUT":
+        textbook1 = Textbook.objects.get(book_no=inputInfo['book_no'], isbn=inputInfo['isbn'], title=inputInfo['title'],
+                                         year=inputInfo['year'], edition=inputInfo['textbook'],
+                                         course_id=inputInfo['course_id'], student_no=inputInfo['student_no'])
+        textbook1.save()
 
     if request.method == "DELETE":
         try:
-            material = Material.objects.get(pk=content['material_no'])
-            material.delete()
-            return JsonResponse({'response': 'success'})
-        except Material.DoesNotExist:
-            return JsonResponse({"error": "Material with material_no " + str(content['material_no']) + " does not exist."})
+            textbook1 = Textbook.objects.get(book_no=inputInfo['book_no'], isbn=inputInfo['isbn'])
+            textbook1.delete()
+            return JsonResponse("response: Success")
+        except Textbook.DoesNotExist:
+            return JsonResponse("error: Textbook with key:" + str(content['book_no']) +
+                                "," + str(content['isbn']) + " does not exist.")
         except ProtectedError:
-            return {'error': "Couldn't delete object " + str(instance.id)}
+            return JsonResponse("error: Cannot delete textbook " + str(instance.id))
 
-    response = JsonResponse({'error': "Request not met."})
+    response = JsonResponse("error: Request not met.")
     response.status_code = 405
     return response
-
-"""
