@@ -49,8 +49,7 @@ class Student(Person):
             'year': self.year,
             'grade_average': self.grade_average,
             'credits_received': self.credits_received,
-            'signed_out_textbooks': list(
-                map(lambda textbook: textbook.json_data(True), self.signed_out_textbooks.all()))
+            'signed_out_textbooks': list(map(lambda textbook: textbook.json_data(True), self.signed_out_textbooks.all()))
         }
         json_data = super().json_data()
         json_data.update(students)
