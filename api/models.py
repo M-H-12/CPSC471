@@ -1,27 +1,45 @@
 from django.db import models
 from polymorphic.models import PolymorphicModel
-from unittest.util import _MAX_LENGTH
+
 
 class Person(PolymorphicModel):
-    SIN = models.IntegerField(primary_key = True)
-    Name = models.CharField()
-    Gender = models.CharField(max_length=1)
-    id = models.IntegerField(max_length=10)
-    Admin_SIN = models.ForeignKey(Admin, on_delete=models.SET_NULL)
+    sin = models.IntegerField(primary_key=True)  # FIXME Restrict to only being 9 in length
+    name = models.CharField(max_length=255)
+    gender = models.CharField(max_length=1)
+    id = models.IntegerField(unique=True)
     password = models.CharField(max_length=50)
-    
+
     def json_data(self, **kwargs):
         person = {
-            
-            'SIN': self.SIN,
-            'Name': self.Name,
-            'Gender': self.Gender,
+            'sin': self.sin,
+            'name': self.name,
+            'gender': self.gender,
             'id': self.id,
-            'Admin_SIN': self.Admin_SIN,
             'password': self.password
-            
         }
         return person
+
+
+class Course(models.Model):
+    course_id = models.IntegerField(primary_key=True)
+    course_name = models.CharField(max_length=255)
+    prerequisite = models.ForeignKey('self', related_name='prerequisites',
+                                     on_delete=models.SET_NULL, blank=True, null=True)  # FIXME Poor choice of name
+
+    def json_data(self, include_prerequisites=False, **kwargs):
+        course = {
+            'course_id': self.course_id,
+            'course_name': self.course_name,
+        }
+        if include_prerequisites:
+            course['prerequisites'] = list(map(lambda prereq: prereq.json_data(False), self.prerequisites.all()))
+        return course
+
+
+"""
+from django.db import models
+from polymorphic.models import PolymorphicModel
+from unittest.util import _MAX_LENGTH
 
 class Staff(Person):
     salary = models.IntegerField()
@@ -157,19 +175,6 @@ class Textbook_Author(models.Model):
             
         }
         return textbook_author
-    
-
-class Course(models.Model):
-    course_id = models.IntegerField(primary_key=True)
-    course_name = models.CharField(max_length=20)
-    Prerequisite = models.ForeignKey('self', related_name='course', on_delete=models.CASCADE)
-
-    def json_data(self, **kwargs):
-        course = {
-            'course_id': self.course_id,
-            'course_name': self.course_name.__str__
-        }
-        return course
 
 class Offering(models.Model):
     course_id = models.ForeignKey(Course, on_delete=models.CASCADE)
@@ -286,3 +291,5 @@ class Schedule(models.Model):
             'Grade': self.grade
         }
         return schedule
+
+"""
