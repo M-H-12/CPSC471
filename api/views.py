@@ -131,13 +131,13 @@ def prerequisite(request):
     if request.method == "PUT":
         try:
             prereq = Course.objects.get(pk=content['prerequisite_id'])
-            target = Course.objects.get(pk=content['course_id'])
+            parent = Course.objects.get(pk=content['parent_id'])
         except Course.DoesNotExist:
-            return JsonResponse({"error": "Your prerequisite or course does not exist."})
-        setattr(prereq, "prerequisite", target)
+            return JsonResponse({"error": "Your prerequisite or parent course does not exist."})
+        setattr(prereq, "parent", parent)
         prereq.full_clean()
         prereq.save()
-        return JsonResponse({'response': "success", 'content': target.json_data(include_prerequisites=True)})
+        return JsonResponse({'response': "success", 'content': parent.json_data(include_prerequisites=True)})
 
     if request.method == "DELETE":
         try:
@@ -145,7 +145,7 @@ def prerequisite(request):
         except Course.DoesNotExist:
             return JsonResponse({"error": "Course with course_id "
                                           + str(content['prerequisite_id']) + " does not exist."})
-        prereq.prerequisite = None
+        prereq.parent = None
         prereq.full_clean()
         prereq.save()
         return JsonResponse({'response': str(prereq.course_name) + ' has been removed as a prerequisite.'})
@@ -153,6 +153,8 @@ def prerequisite(request):
     response = JsonResponse({'error': "Request not met."})
     response.status_code = 405
     return response
+
+
 
 
 """
