@@ -567,6 +567,65 @@ def counselor(request):
     return response
 
 
+@csrf_exempt
+def counselor_office_hours(request):
+    try:
+        content = json.loads(request.body)['content']
+    except KeyError:
+        return JsonResponse({"error": "Please wrap your request body with 'content' "})
+
+    if request.method == "GET":
+        try:
+            office_hours = CounselorOfficeHour.objects.get(counselor_id=content['counselor_id'])
+            return JsonResponse({'response': "success", 'content': office_hours.json_data()})
+        except CounselorOfficeHour.DoesNotExist:
+            return JsonResponse({"error": "Counselor with id " + str(content['counselor_id']) + " does not have any office hours."})
+        except KeyError:
+            return JsonResponse({"error": "No id included"})
+
+    if request.method == "POST":
+        try:
+            office_hours = CounselorOfficeHour.objects.create(**content)
+            office_hours.full_clean()
+            office_hours.save()
+            return JsonResponse({"response": office_hours.json_data()})
+        except ValidationError as e:
+            office_hours.delete()
+            return JsonResponse({'error': e.message_dict})
+        except IntegrityError:
+            return JsonResponse({'error': "Object could not be created."})
+
+    if request.method == "PUT":
+        try:
+            office_hours = CounselorOfficeHour.objects.get(counselor_id=content['counselor_id'])
+        except CounselorOfficeHour.DoesNotExist:
+            return JsonResponse({"error": "Counselor with id " + str(content['counselor_id']) + " does not exist."})
+        except KeyError:
+            return JsonResponse({"error": "No sin included"})
+
+        try:
+            for attr, value in content.items():
+                setattr(office_hours, attr, value)
+            office_hours.full_clean()
+            office_hours.save()
+            return JsonResponse({'response': "success", 'content': office_hours.json_data()})
+        except ValidationError as e:
+            return JsonResponse({'error': e.message_dict})
+
+    if request.method == "DELETE":
+        try:
+            office_hours = CounselorOfficeHour.objects.get(counselor_id=content['counselor_id'])
+            office_hours.delete()
+            return JsonResponse({'response': str(office_hours.id) + ' has been deleted.'})
+        except CounselorOfficeHour.DoesNotExist:
+            return JsonResponse({"error": "Counselor with id " + str(content['counselor_id']) + " does not exist."})
+
+    response = JsonResponse({'error': "Request not met."})
+    response.status_code = 405
+    return response
+
+
+@csrf_exempt
 def room(request):
     try:
         content = json.loads(request.body)['content']
