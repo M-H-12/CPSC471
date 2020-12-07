@@ -6,6 +6,7 @@ from django.db.utils import IntegrityError
 import json
 import datetime
 from .models import *
+from builtins import None
 
 
 @csrf_exempt
@@ -259,7 +260,60 @@ def teacher(request):
     return response
 
 
-@csrf_exempt  # add in another api for adding room and times MADISON
+@csrf_exempt
+def offering_room(request):
+    
+    content = json.loads(request.body)['content']
+    
+    if request.method == "DELETE":
+        course = Course.objects.get(pk=content['course_id'])
+        offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
+        offering.room = None
+        offering.delete()
+        return JsonResponse({'response': 'Success'})
+    if request.method == "PUT":
+        course = Course.objects.get(pk=content['course_id'])
+        offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
+        room = Room.objects.get(pk=content['room_no'])
+        offering.room = room
+        offering.full_clean()
+        offering.save()
+        return JsonResponse({'response': 'Success'})
+    
+    response = JsonResponse({'error': "Request not met."})
+    response.status_code = 405
+    return response
+
+@csrf_exempt
+def offering_time(request):
+    content = json.loads(request.body)['content']
+    
+    if request.method == "POST":
+        course = Course.objects.get(pk=content['course_id'])
+        offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
+        offering_time = OfferingDayAndTime.objects.create(offering = offering, 
+                                                          day=content['day'],
+                                                          hour_from=content['hour_from'],
+                                                          hour_to=content['hour_to'])
+        offering_time.full_clean()
+        offering_time.save()
+        return JsonResponse({'response': 'offering_time created.'})
+    if request.method == "DELETE":
+        course = Course.objects.get(pk=content['course_id'])
+        offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
+        offering_time = OfferingDayAndTime.objects.create(offering = offering, 
+                                                          day=content['day'],
+                                                          hour_from=content['hour_from'],
+                                                          hour_to=content['hour_to'])
+        offering_time.offering = None
+        offering_time.delete()
+
+    response = JsonResponse("error: Request not met.")
+    response.status_code = 405
+    return response
+        
+
+@csrf_exempt
 def offering(request):
     try:
         content = json.loads(request.body)['content']
@@ -487,8 +541,30 @@ def material(request):
     response.status_code = 405
     return response
 
+@csrf_exempt 
+def student_textbook(request):
+    content = json.loads(request.body)['content']
+    
+    if request.method == "POST":
+        student = Student.objects.get(pk=content['sin'])
+        course = Course.objects.get(pk=content['course_id'])
+        textbook = Textbook.objects.create(student=student, course = course, isbn = content['isbn'], book_no=content['book_no'])
+        textbook.full_clean()
+        textbook.save()
+        return JsonResponse({'response': 'Student textbook created.'})
+    if request.method == "DELETE"
+        student = Student.objects.get(pk=content['sin'])
+        course = Course.objects.get(pk=content['course_id'])
+        textbook = Textbook.objects.create(student=student, course = course, isbn = content['isbn'], book_no=content['book_no'])
+        textbook.student = None
+        textbook.course = None
+        textbook.delete()
+    
+    response = JsonResponse("error: Request not met.")
+    response.status_code = 405
+    return response
 
-@csrf_exempt  # add in another api for adding textbook MADISON
+@csrf_exempt
 def student(request):
     content = json.loads(request.body)['content']
 
@@ -535,8 +611,27 @@ def student(request):
     response.status_code = 405
     return response
 
+@csrf_exempt
+def textbook_author(request):
+    content = json.loads(request.body)['content']
+    
+    if request.method == "POST":
+        textbook = Textbook.objects.get(isbn = content['isbn'], book_no = content['book_no'])
+        textbook_author = TextbookAuthor.objects.create(textbook = textbook, author = content['author'])
+        textbook_author.full_clean()
+        textbook_author.save()
+        return JsonResponse({'response': 'Textbook_author created.'})
+    if request.method == "DELETE":
+        textbook = Textbook.objects.get(isbn = content['isbn'], book_no = content['book_no'])
+        textbook_author = TextbookAuthor.objects.get(textbook = textbook, author = content['author'])
+        textbook_author.textbook = None
+        textbook_author.delete()
 
-@csrf_exempt  # add in another api for adding author  MADISON
+    response = JsonResponse("error: Request not met.")
+    response.status_code = 405
+    return response
+
+@csrf_exempt
 def textbook(request):
     inputInfo = json.loads(request.body)['content']
 
