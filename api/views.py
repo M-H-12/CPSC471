@@ -230,7 +230,6 @@ def offering(request):
     return response
 
 
-@csrf_exempt
 def prerequisite(request):
     try:
         content = json.loads(request.body)['content']
@@ -264,7 +263,6 @@ def prerequisite(request):
     return response
 
 
-@csrf_exempt
 def admin(request):
     try:
         content = json.loads(request.body)['content']
@@ -313,7 +311,6 @@ def admin(request):
     return response
 
 
-@csrf_exempt  # TEST
 def assignment(request):
     try:
         content = json.loads(request.body)['content']
@@ -330,7 +327,8 @@ def assignment(request):
         try:
             course = Course.objects.get(pk=content['course_id'])
             offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
-            assignment = Assignment.objects.create(**content, offering=offering)
+            assignment = Assignment.objects.create(offering=offering, assign_no=content['assign_no'],
+                                                   name=content['name'], description=content['description'])
             assignment.full_clean()
             assignment.save()
             return JsonResponse({"response": assignment.json_data()})
@@ -364,24 +362,24 @@ def assignment(request):
     return response
 
 
-@csrf_exempt  # TEST
 def material(request):
     try:
         content = json.loads(request.body)['content']
     except KeyError:
         return JsonResponse({"error": "Please wrap your request body with 'content' "})
 
+    course = Course.objects.get(pk=content['course_id'])
+    offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
+
     if request.method == "GET":
-        course = Course.objects.get(pk=content['course_id'])
-        offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
-        material = Material.objects.get(offering=offering, assign_no=content['material_no'])
+        material = Material.objects.get(offering=offering, material_no=content['material_no'])
         return JsonResponse({"response": material.json_data()})
 
     if request.method == "POST":
         try:
-            course = Course.objects.get(pk=content['course_id'])
-            offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
-            material = Material.objects.create(**content, offering=offering)
+            material = Material.objects.create(offering=offering, material_no=content['material_no'],
+                                               name=content['name'], category=content['category'],
+                                               description=content['description'])
             material.full_clean()
             material.save()
             return JsonResponse({"response": material.json_data()})
@@ -390,23 +388,19 @@ def material(request):
             return JsonResponse({'error': e.message_dict})
 
     if request.method == "PUT":
-        course = Course.objects.get(pk=content['course_id'])
-        offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
-        material = Material.objects.get(offering=offering, assign_no=content['material_no'])
+        material = Material.objects.get(offering=offering, material_no=content['material_no'])
 
         try:
             for attr, value in content.items():
                 setattr(material, attr, value)
             material.full_clean()
             material.save()
-            return JsonResponse({'response': "success", 'content': material.json_data(include_prerequisites=True)})
+            return JsonResponse({'response': "success", 'content': material.json_data()})
         except ValidationError as e:
             return JsonResponse({'error': e.message_dict})
 
     if request.method == "DELETE":
-        course = Course.objects.get(pk=content['course_id'])
-        offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
-        material = Material.objects.get(offering=offering, assign_no=content['material_no'])
+        material = Material.objects.get(offering=offering, material_no=content['material_no'])
         material.delete()
         return JsonResponse({'response': 'success'})
 
@@ -424,7 +418,7 @@ def student(request):
             student1 = Student.objects.get(pk=content['sin'])
             return JsonResponse({"response": student1.json_data()})
         except Student.DoesNotExist:
-            return JsonResponse({"error" : "Student with SIN:" + str(content['sin']) + " does not exist."})
+            return JsonResponse({"error": "Student with SIN:" + str(content['sin']) + " does not exist."})
 
     if request.method == "PUT":
         student1 = Student.objects.get(pk=content['sin'])
@@ -473,7 +467,7 @@ def textbook(request):
             return JsonResponse({"response": textbook1.json_data()})
         except Textbook.DoesNotExist:
             return JsonResponse({"error": "Textbook with key:" + str(content['book_no']) +
-                                "," + str(content['isbn']) + " does not exist."})
+                                          "," + str(content['isbn']) + " does not exist."})
 
     if request.method == "PUT":
         textbook1 = Textbook.objects.get(book_no=inputInfo['book_no'], isbn=inputInfo['isbn'])
@@ -573,7 +567,6 @@ def counselor(request):
     return response
 
 
-@csrf_exempt
 def room(request):
     try:
         content = json.loads(request.body)['content']
@@ -618,16 +611,31 @@ def room(request):
 def schedule(request):
     content = json.loads(request.body)['content']
 
+    course = Course.objects.get(pk=content['course_id'])
+    offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
+    student = Student.objects.get(pk=content['sin'])
+
+    if request.method == "GET":
+        schedule = Schedule.objects.get(offering=offering, student=student)
+        return JsonResponse(schedule.json_data())
+
     if request.method == "POST":
-        try:
-            schedule = Person.objects.create(**content)
-            schedule.full_clean()
-            schedule.save()
-            return JsonResponse({"response": schedule.json_data()})
-        except ValidationError as e:
-            schedule.delete()  # FIXME if sin not provided, the object will still be created (we can't delete it)
-            return JsonResponse({'error': e.message_dict})
-        except IntegrityError:
-            return JsonResponse({'error': "Object could not be created."})
+        schedule = Schedule.objects.create(offering=offering, student=student, semester=content['semester'],
+                                         grade=content['grade'])
+        schedule.full_clean()
+        schedule.save()
+        return JsonResponse({"response": schedule.json_data()})
 
+    if request.method == "PUT":
+        schedule = Schedule.objects.get(offering=offering, student=student)
 
+        for attr, value in content.items():
+            setattr(schedule, attr, value)
+        schedule.full_clean()
+        schedule.save()
+        return JsonResponse({'response': "success", 'content': schedule.json_data()})
+
+    if request.method == "DELETE":
+        schedule = Schedule.objects.get(offering=offering, student=student)
+        schedule.delete()
+        return JsonResponse({'response': 'success'})
