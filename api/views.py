@@ -66,7 +66,7 @@ def person(request):
     return response
 
 
-@csrf_exempt  # add in another api for adding textbook ZACH
+@csrf_exempt
 def course(request):
     try:
         content = json.loads(request.body)['content']
@@ -122,7 +122,86 @@ def course(request):
     return response
 
 
-@csrf_exempt  # add in another api for adding office hours and "can teach" ZACH
+@csrf_exempt
+def teacher_office_hours(request):
+    try:
+        content = json.loads(request.body)['content']
+    except KeyError:
+        return JsonResponse({"error": "Please wrap your request body with 'content' "})
+    if request.methods == "POST":
+        teacher = Teacher.objects.get(pk=content['sin'])
+        teacher_office_hour = TeacherOfficeHour.objects.create(teacher=teacher, day=content['day'],
+                                                               hour_from=content['hour_from'],
+                                                               hour_to=content['hour_to'])
+        teacher_office_hour.full_clean()
+        teacher_office_hour.save()
+        return JsonResponse({'response': "success", 'content': teacher.json_data()})
+
+    if request.methods == "DELETE":
+        teacher = Teacher.objects.get(pk=content['sin'])
+        teacher_office_hour = TeacherOfficeHour.objects.get(teacher=teacher, day=content['day'],
+                                                            hour_from=content['hour_from'],
+                                                            hour_to=content['hour_to'])
+        teacher_office_hour.delete()
+        return JsonResponse({'response': "success"})
+
+    response = JsonResponse({'error': "Request not met."})
+    response.status_code = 405
+    return response
+
+
+@csrf_exempt
+def can_teach(request):
+    try:
+        content = json.loads(request.body)['content']
+    except KeyError:
+        return JsonResponse({"error": "Please wrap your request body with 'content' "})
+    if request.method == "PUT":
+        course = Course.objects.get(pk=content['course_id'])
+        teacher = Teacher.objects.get(pk=content['sin'])
+        setattr(teacher, "can_teach", course)
+        teacher.full_clean()
+        teacher.save()
+        return JsonResponse({'response': "success", 'content': teacher.json_data()})
+
+    if request.method == "DELETE":
+        teacher = Teacher.objects.get(pk=content['sin'])
+        teacher.can_teach=None
+        teacher.save()
+        return JsonResponse({'response': "success"})
+
+    response = JsonResponse({'error': "Request not met."})
+    response.status_code = 405
+    return response
+
+
+@csrf_exempt
+def add_textbook(request):
+    try:
+        content = json.loads(request.body)['content']
+    except KeyError:
+        return JsonResponse({"error": "Please wrap your request body with 'content' "})
+
+    if request.method == "PUT":
+        course = Course.objects.get(pk=content['course_id'])
+        textbook = Textbook.objects.get(isbn=content['isbn'], book_no=content['book_no'])
+        setattr(textbook, "course", course)
+        textbook.full_clean()
+        textbook.save()
+        return JsonResponse({'response': "success", 'content': course.json_data(include_prerequisites=False)})
+
+    if request.method == "DELETE":
+        textbook = Textbook.objects.get(isbn=content['isbn'], book_no=content['book_no'])
+        textbook.course=None
+        textbook.save()
+        return JsonResponse({'response': "success"})
+
+    response = JsonResponse({'error': "Request not met."})
+    response.status_code = 405
+    return response
+
+
+@csrf_exempt
 def teacher(request):
     try:
         content = json.loads(request.body)['content']
