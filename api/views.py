@@ -6,7 +6,7 @@ from django.db.utils import IntegrityError
 import json
 import datetime
 from .models import *
-from builtins import None
+#from builtins import None
 
 
 @csrf_exempt
@@ -552,7 +552,7 @@ def student_textbook(request):
         textbook.full_clean()
         textbook.save()
         return JsonResponse({'response': 'Student textbook created.'})
-    if request.method == "DELETE"
+    if request.method == "DELETE":
         student = Student.objects.get(pk=content['sin'])
         course = Course.objects.get(pk=content['course_id'])
         textbook = Textbook.objects.create(student=student, course = course, isbn = content['isbn'], book_no=content['book_no'])
@@ -683,7 +683,7 @@ def textbook(request):
     return response
 
 
-@csrf_exempt  # add in another api for adding counsel and office hours JAYDEN
+@csrf_exempt
 def counselor(request):
     try:
         content = json.loads(request.body)['content']
@@ -692,10 +692,10 @@ def counselor(request):
 
     if request.method == "GET":
         try:
-            counselor = Counselor.objects.get(pk=content['sin'])
+            counselor = Counselor.objects.get(pk=content['id'])
             return JsonResponse({'response': "success", 'content': counselor.json_data()})
         except Counselor.DoesNotExist:
-            return JsonResponse({"error": "Counselor with sin " + str(content['sin']) + " does not exist."})
+            return JsonResponse({"error": "Counselor with id " + str(content['id']) + " does not exist."})
         except KeyError:
             return JsonResponse({"error": "No id included"})
 
@@ -713,11 +713,11 @@ def counselor(request):
 
     if request.method == "PUT":
         try:
-            counselor = Counselor.objects.get(pk=content['sin'])
+            counselor = Counselor.objects.get(pk=content['id'])
         except Counselor.DoesNotExist:
-            return JsonResponse({"error": "Counselor with sin " + str(content['sin']) + " does not exist."})
+            return JsonResponse({"error": "Counselor with id " + str(content['id']) + " does not exist."})
         except KeyError:
-            return JsonResponse({"error": "No sin included"})
+            return JsonResponse({"error": "No id included"})
 
         try:
             for attr, value in content.items():
@@ -730,11 +730,11 @@ def counselor(request):
 
     if request.method == "DELETE":
         try:
-            counselor = Counselor.objects.get(pk=content['sin'])
+            counselor = Counselor.objects.get(pk=content['id'])
             counselor.delete()
             return JsonResponse({'response': str(counselor.name) + ' has been deleted.'})
         except Counselor.DoesNotExist:
-            return JsonResponse({"error": "Counselor with sin " + str(content['sin']) + " does not exist."})
+            return JsonResponse({"error": "Counselor with id " + str(content['id']) + " does not exist."})
 
     response = JsonResponse({'error': "Request not met."})
     response.status_code = 405
@@ -775,7 +775,7 @@ def counselor_office_hours(request):
         except CounselorOfficeHour.DoesNotExist:
             return JsonResponse({"error": "Counselor with id " + str(content['counselor_id']) + " does not exist."})
         except KeyError:
-            return JsonResponse({"error": "No sin included"})
+            return JsonResponse({"error": "No id included"})
 
         try:
             for attr, value in content.items():
@@ -793,6 +793,32 @@ def counselor_office_hours(request):
             return JsonResponse({'response': str(office_hours.id) + ' has been deleted.'})
         except CounselorOfficeHour.DoesNotExist:
             return JsonResponse({"error": "Counselor with id " + str(content['counselor_id']) + " does not exist."})
+
+    response = JsonResponse({'error': "Request not met."})
+    response.status_code = 405
+    return response
+
+
+@csrf_exempt
+def counsels(request):
+    try:
+        content = json.loads(request.body)['content']
+    except KeyError:
+        return JsonResponse({"error": "Please wrap your request body with 'content' "})
+    if request.method == "POST":
+        counselor = Counselor.objects.get(pk=content['counselor_id'])
+        student = Student.objects.get(pk=content['student_id'])
+        counselor.counsels.add(student)
+        counselor.full_clean()
+        counselor.save()
+        return JsonResponse({'response': "success", 'content': counselor.json_data()})
+
+    if request.method == "DELETE":
+        counselor = Counselor.objects.get(pk=content['counselor_id'])
+        student = Student.objects.get(pk=content['student_id'])
+        counselor.counsels.remove(student)
+        counselor.save()
+        return JsonResponse({'response': "success"})
 
     response = JsonResponse({'error': "Request not met."})
     response.status_code = 405
