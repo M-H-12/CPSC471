@@ -232,7 +232,7 @@ class Material(models.Model):
     offering = models.ForeignKey(Offering, on_delete=models.CASCADE, editable=False)
     material_no = models.PositiveIntegerField(editable=False)
     name = models.CharField(max_length=255)
-    upload_date = models.DateTimeField(auto_now_add=True, editable=False)
+    upload_date = models.DateField(auto_now_add=True, editable=False)
     category = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
 
@@ -272,7 +272,7 @@ class Schedule(models.Model):
     offering = models.ForeignKey(Offering, on_delete=models.CASCADE)
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     semester = models.CharField(max_length=255)
-    grade = models.PositiveSmallIntegerField()
+    grade = models.CharField(max_length=2, blank=True, null=True)
 
     class Meta:
         unique_together = ('offering', 'student',)
@@ -285,3 +285,5 @@ class Schedule(models.Model):
         json_data = self.offering.json_data(include_course_info=True, include_room=False)
         json_data.update(schedule)
         return json_data
+
+
