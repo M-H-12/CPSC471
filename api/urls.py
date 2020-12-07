@@ -11,13 +11,7 @@ urlpatterns = [
     path('room/', views.room),
     path('textbook/', views.textbook),
     path('teacher/', views.teacher),
-
-
     path('offering/', views.offering),
     path('student/', views.student),
-
-
-
-
     path('assignment/', views.assignment)
 ]

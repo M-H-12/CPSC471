@@ -41,8 +41,8 @@ class Course(models.Model):
 
 class Student(Person):
     year = models.PositiveSmallIntegerField()
-    grade_average = models.PositiveSmallIntegerField()
-    credits_received = models.PositiveSmallIntegerField()
+    grade_average = models.FloatField()
+    credits_received = models.PositiveIntegerField()
 
     def json_data(self, **kwargs):
         students = {
@@ -254,8 +254,6 @@ class Assignment(models.Model):
     offering = models.ForeignKey(Offering, on_delete=models.CASCADE, editable=False)
     assign_no = models.PositiveIntegerField(editable=False)
     name = models.CharField(max_length=255)
-    start_date = models.DateTimeField()
-    end_date = models.DateTimeField()
     description = models.TextField(blank=True, null=True)
 
     class Meta:
@@ -265,8 +263,6 @@ class Assignment(models.Model):
         assignment = {
             'assign_no': self.assign_no,
             'name': self.name,
-            'start_date': self.start_date.__str__(),
-            'end_date': self.end_date.__str__(),
             'description': self.description,
         }
         return assignment

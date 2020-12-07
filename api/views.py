@@ -65,12 +65,8 @@ def person(request):
     response.status_code = 405
     return response
 
-<<<<<<< HEAD
 
 @csrf_exempt  # add in another api for adding textbook ZACH
-=======
-@csrf_exempt
->>>>>>> d61658efcea9b543d97243b875c1eb2292371640
 def course(request):
     try:
         content = json.loads(request.body)['content']
@@ -125,100 +121,6 @@ def course(request):
     response.status_code = 405
     return response
 
-@csrf_exempt
-def Teacher(request):
-    try:
-        content = json.loads(request.body)['content']
-    except KeyError:
-        return JsonResponse({"error": "Please wrap your request body with 'content' "})
-    
-    if request.method == "GET":
-        try:
-            person = Person.objects.get(pk=content['sin'])
-            teacher = Teacher.objects.get(person = person)
-            return JsonResponse(teacher.Json_data())
-        except Teacher.DoesNotExist:
-            return JsonResponse({"error": "Teacher with sin " + str(content['sin']) + " does not exist."})
-        except KeyError:
-            return JsonResponse({"error": "No sin included"})
-        
-    if request.method == "POST":
-        try:
-            person = Person.objects.get(pk=content['sin'])
-            teacher = Teacher.objects.get(**content, person = person)
-            teacher.full_clean()
-            teacher.save()
-            return JsonResponse({"response": teacher.json_data()})
-        except ValidationError as e:
-            teacher.delete()
-            return JsonResponse({'error': e.message_dict})
-        except IntegrityError:
-            return JsonResponse({'error': "Teacher could not be created."})
-        
-    if request.method == "DELETE":
-        try:
-            person = Person.objects.get(pk=content['sin'])
-            teacher = Teacher.objects.get(person = person)
-            teacher.delete()
-            return JsonResponse({'response': str(teacher.name) + ' has been deleted.'})
-        except Teacher.DoesNotExist:
-            return JsonResponse({"error": "Teacher with sin " + str(content['sin']) + " does not exist."})
-
-    response = JsonResponse({'error': "Request not met."})
-    response.status_code = 405
-    return response
-    
-
-@csrf_exempt
-def offering(request):
-    try:
-        content = json.loads(request.body)['content']
-    except KeyError:
-        return JsonResponse({"error": "Please wrap your request body with 'content' "})
-    
-    if request.method == "GET":
-        try:
-            room = Room.object.create(pk=content['room_no'])
-            course = Course.object.create(pk=content['course_id'])
-            offering = Offering.object.create(room=room, course=course, pk=content['offering_no'])
-            return JsonResponse(offering.Json_data())
-        except Room.DoesNotExist:
-            return JsonResponse({"error": "Room with #" + str(content['room_no']) + " does not exist."})
-        except Course.DoesNotExist:
-            return JsonResponse({"error": "Course with id " + str(content['course_id']) + " does not exist."})
-        except Offering.DoesNotExist:
-            return JsonResponse({"error": "Offering with id " + str(content['offering_no']) + " does not exist."})
-        except KeyError:
-            return JsonResponse({"error": "No offering_id included"})
-    
-    if request.method == "POST":
-        try:
-            room = Room.object.create(pk=content['room_no'])
-            course = Course.object.create(pk=content['course_id'])
-            offering = Offering.object.create(room=room, course=course, pk=content['offering_no'])
-            offering.full_clean()
-            offering.save()
-            return JsonResponse({"response": offering.json_data()})
-        except ValidationError as e:
-            offering.delete()
-            return JsonResponse({'error': e.message_dict})
-        except IntegrityError:
-            return JsonResponse({'error': "Offering could not be created."})
-    
-    if request.method == "DELETE":
-        try:
-            room = Room.object.create(pk=content['room_no'])
-            course = Course.object.create(pk=content['course_id'])
-            offering = Offering.object.create(room=room, course=course, pk=content['offering_no'])
-            offering.delete()
-            return JsonResponse({'response': str(offering.offering_no) + ' has been deleted.'})
-        except Offering.DoesNotExist:
-            return JsonResponse({"error": "Offering with #" + str(content['offering_no']) + " does not exist."})
-            
-    response = JsonResponse({'error': "Request not met."})
-    response.status_code = 405
-    return response
-            
 
 @csrf_exempt  # add in another api for adding office hours and "can teach" ZACH
 def teacher(request):
@@ -278,7 +180,7 @@ def teacher(request):
     return response
 
 
-@csrf_exempt   # add in another api for adding room and times MADISON
+@csrf_exempt  # add in another api for adding room and times MADISON
 def offering(request):
     try:
         content = json.loads(request.body)['content']
@@ -287,10 +189,9 @@ def offering(request):
 
     if request.method == "GET":
         try:
-            room = Room.object.create(pk=content['room_no'])
-            course = Course.object.create(pk=content['course_id'])
-            offering = Offering.object.create(room=room, course=course, pk=content['offering_no'])
-            return JsonResponse(offering.Json_data())
+            course = Course.objects.get(pk=content['course_id'])
+            offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
+            return JsonResponse(offering.json_data(True))
         except Room.DoesNotExist:
             return JsonResponse({"error": "Room with #" + str(content['room_no']) + " does not exist."})
         except Course.DoesNotExist:
@@ -302,22 +203,23 @@ def offering(request):
 
     if request.method == "POST":
         try:
-            course = Course.object.get(pk=content['course_id'])
-            offering = Offering.object.create(**content, course=course)
+            course = Course.objects.get(pk=content['course_id'])
+            offering = Offering.objects.create(**content, course=course)
             offering.full_clean()
             offering.save()
-            return JsonResponse({"response": offering.json_data()})
+            return JsonResponse({"response": offering.json_data(include_course_info=True)})
         except ValidationError as e:
             offering.delete()
             return JsonResponse({'error': e.message_dict})
         except IntegrityError:
             return JsonResponse({'error': "Offering could not be created."})
 
+    # NOTE No update because we dont want any editing of offering
+
     if request.method == "DELETE":
         try:
-            room = Room.object.create(pk=content['room_no'])
-            course = Course.object.create(pk=content['course_id'])
-            offering = Offering.object.create(room=room, course=course, pk=content['offering_no'])
+            course = Course.objects.get(pk=content['course_id'])
+            offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
             offering.delete()
             return JsonResponse({'response': str(offering.offering_no) + ' has been deleted.'})
         except Offering.DoesNotExist:
@@ -515,41 +417,46 @@ def material(request):
 
 @csrf_exempt  # add in another api for adding textbook MADISON
 def student(request):
-    inputInfo = json.loads(request.body)['content']
+    content = json.loads(request.body)['content']
 
     if request.method == "GET":
         try:
-            student1 = Student.objects.get(sin=inputInfo['sin'])
-            return JsonResponse("response: " + student1.json_data())
+            student1 = Student.objects.get(pk=content['sin'])
+            return JsonResponse({"response": student1.json_data()})
         except Student.DoesNotExist:
-            return JsonResponse("error: Student with SIN:" + str(content['sin']) + " does not exist.")
+            return JsonResponse({"error" : "Student with SIN:" + str(content['sin']) + " does not exist."})
 
     if request.method == "PUT":
-        student1 = Student.objects.get(sin=inputInfo['sin'], year=inputInfo['year'],
-                                       grade_average=inputInfo['grade_average'],
-                                       credits_received=inputInfo['credits_received'])
-        student1.full_clean()
-        student1.save()
+        student1 = Student.objects.get(pk=content['sin'])
+
+        try:
+            for attr, value in content.items():
+                setattr(student1, attr, value)
+            student1.full_clean()
+            student1.save()
+            return JsonResponse({'response': "success", 'content': student1.json_data()})
+        except ValidationError as e:
+            return JsonResponse({'error': e.message_dict})
 
     if request.method == "POST":
         try:
-            student1 = Student.objects.create(**inputInfo)
-            student1.full_clean()
-            student1.save()
-            return JsonResponse({"response": student1.json_data(True)})
+            student = Student.objects.create(**content)
+            student.full_clean()
+            student.save()
+            return JsonResponse({"response": student.json_data()})
         except ValidationError as e:
-            student1.delete()
+            student.delete()
             return JsonResponse({'error': e.message_dict})
 
     if request.method == "DELETE":
         try:
-            student1 = Student.objects.get(sin=inputInfo['sin'])
+            student1 = Student.objects.get(pk=content['sin'])
             student1.delete()
-            return JsonResponse("response: Success")
+            return JsonResponse({"response": "success"})
         except Student.DoesNotExist:
-            return JsonResponse("error: Student with SIN: " + str(content['sin']) + " does not exist.")
+            return JsonResponse({"error": "Student with SIN: " + str(content['sin']) + " does not exist."})
         except ProtectedError:
-            return JsonResponse("error: Cannot delete student " + str(instance.id))
+            return JsonResponse({"error": "Cannot delete student " + str(instance.id)})
 
     response = JsonResponse("error: Request not met.")
     response.status_code = 405
@@ -565,8 +472,8 @@ def textbook(request):
             textbook1 = Textbook.objects.get(book_no=inputInfo['book_no'], isbn=inputInfo['isbn'])
             return JsonResponse({"response": textbook1.json_data()})
         except Textbook.DoesNotExist:
-            return JsonResponse("error: Textbook with key:" + str(content['book_no']) +
-                                "," + str(content['isbn']) + " does not exist.")
+            return JsonResponse({"error": "Textbook with key:" + str(content['book_no']) +
+                                "," + str(content['isbn']) + " does not exist."})
 
     if request.method == "PUT":
         textbook1 = Textbook.objects.get(book_no=inputInfo['book_no'], isbn=inputInfo['isbn'])
@@ -708,5 +615,19 @@ def room(request):
     return response
 
 
+def schedule(request):
+    content = json.loads(request.body)['content']
 
-#DEF SCHEDULE
+    if request.method == "POST":
+        try:
+            schedule = Person.objects.create(**content)
+            schedule.full_clean()
+            schedule.save()
+            return JsonResponse({"response": schedule.json_data()})
+        except ValidationError as e:
+            schedule.delete()  # FIXME if sin not provided, the object will still be created (we can't delete it)
+            return JsonResponse({'error': e.message_dict})
+        except IntegrityError:
+            return JsonResponse({'error': "Object could not be created."})
+
+
