@@ -196,7 +196,7 @@ class Admin(Person):
 
 class Textbook(models.Model):
     isbn = models.IntegerField(primary_key=True)  # TODO Set length to 10
-    book_no = models.IntegerField(primary_key=True)
+    book_no = models.IntegerField()
     title = models.CharField(max_length=255)
     year = models.IntegerField()  # TODO Set length to 4
     edition = models.IntegerField()
