@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 
-class CreateCourse extends Component {
+class AddOffering extends Component {
 
 	constructor(props) {
         super(props);
@@ -47,15 +47,15 @@ class CreateCourse extends Component {
 		this.setState({[field]: event.target.value});
 	}
 
-    addCourse () {
+    chooseCourse () {
         return (
             <>
-                <h1>Create Course</h1>
+                <h1>Choose a Course</h1>
 				<input type="text" value={this.state.value} name="courseName" placeholder="Course Name" onChange={(event)=>this.handleField(event, "course_name")}></input>
 				<br></br>
 				<input type="text" value={this.state.value} name="courseNumber" placeholder="Course ID" onChange={(event)=>this.handleField(event, "course_number")}></input>
 				<br></br>
-				<button onClick={ this.onClickOffering }>Create Course</button>
+				<button onClick={ this.onClickOffering }>Submit</button>
             </>
         )
     }
@@ -63,7 +63,7 @@ class CreateCourse extends Component {
     addOffering () {
         return (
             <>
-				<h1>Create Course</h1>
+				<h1>Course Information</h1>
 				<p> Course Name: { this.state.course_name } </p>
 				<p> Course ID: { this.state.course_number } </p>
 
@@ -90,11 +90,11 @@ class CreateCourse extends Component {
 	confirmCourse () {
 		return (
             <>
-				<h1>Create Course</h1>
+				<h1>Course Information</h1>
 				<p> Course Name: { this.state.course_name } </p>
 				<p> Course ID: { this.state.course_number } </p>
 
-                <h1>Offering List</h1>
+                <h1>Offering Information</h1>
 				<p> Offering ID: { this.state.offering_ID } </p>
 				<p> Offering Number: { this.state.offering_number } </p>
 				<p> Offering Capacity: { this.state.offering_capacity } </p>
@@ -113,7 +113,7 @@ class CreateCourse extends Component {
         const { showConfirmationForm } = this.state;
 		return (
 			<>
-				{showCourseForm && this.addCourse()}
+				{showCourseForm && this.chooseCourse()}
                 {showOfferingForm && this.addOffering()}
                 {showConfirmationForm && this.confirmCourse()}
 			</>
@@ -121,4 +121,4 @@ class CreateCourse extends Component {
 	}
 }
 
-export default CreateCourse;
+export default AddOffering;
