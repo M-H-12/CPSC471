@@ -9,7 +9,6 @@ from .models import *
 #from builtins import None
 
 
-@csrf_exempt
 def person(request):
     try:
         content = json.loads(request.body)['content']
@@ -67,7 +66,6 @@ def person(request):
     return response
 
 
-@csrf_exempt
 def course(request):
     try:
         content = json.loads(request.body)['content']
@@ -123,7 +121,6 @@ def course(request):
     return response
 
 
-@csrf_exempt
 def teacher_office_hours(request):
     try:
         content = json.loads(request.body)['content']
@@ -151,7 +148,6 @@ def teacher_office_hours(request):
     return response
 
 
-@csrf_exempt
 def can_teach(request):
     try:
         content = json.loads(request.body)['content']
@@ -176,7 +172,6 @@ def can_teach(request):
     return response
 
 
-@csrf_exempt
 def add_textbook(request):
     try:
         content = json.loads(request.body)['content']
@@ -202,7 +197,6 @@ def add_textbook(request):
     return response
 
 
-@csrf_exempt
 def teacher(request):
     try:
         content = json.loads(request.body)['content']
@@ -260,7 +254,6 @@ def teacher(request):
     return response
 
 
-@csrf_exempt
 def offering_room(request):
     
     content = json.loads(request.body)['content']
@@ -284,7 +277,7 @@ def offering_room(request):
     response.status_code = 405
     return response
 
-@csrf_exempt
+
 def offering_time(request):
     content = json.loads(request.body)['content']
     
@@ -313,7 +306,7 @@ def offering_time(request):
     return response
         
 
-@csrf_exempt
+
 def offering(request):
     try:
         content = json.loads(request.body)['content']
@@ -541,7 +534,7 @@ def material(request):
     response.status_code = 405
     return response
 
-@csrf_exempt 
+
 def student_textbook(request):
     content = json.loads(request.body)['content']
     
@@ -564,7 +557,7 @@ def student_textbook(request):
     response.status_code = 405
     return response
 
-@csrf_exempt
+
 def student(request):
     content = json.loads(request.body)['content']
 
@@ -611,7 +604,7 @@ def student(request):
     response.status_code = 405
     return response
 
-@csrf_exempt
+
 def textbook_author(request):
     content = json.loads(request.body)['content']
     
@@ -631,7 +624,7 @@ def textbook_author(request):
     response.status_code = 405
     return response
 
-@csrf_exempt
+
 def textbook(request):
     inputInfo = json.loads(request.body)['content']
 
@@ -683,7 +676,6 @@ def textbook(request):
     return response
 
 
-@csrf_exempt
 def counselor(request):
     try:
         content = json.loads(request.body)['content']
@@ -741,7 +733,6 @@ def counselor(request):
     return response
 
 
-@csrf_exempt
 def counselor_office_hours(request):
     try:
         content = json.loads(request.body)['content']
@@ -799,7 +790,6 @@ def counselor_office_hours(request):
     return response
 
 
-@csrf_exempt
 def counsels(request):
     try:
         content = json.loads(request.body)['content']
@@ -825,7 +815,6 @@ def counsels(request):
     return response
 
 
-@csrf_exempt
 def room(request):
     try:
         content = json.loads(request.body)['content']
