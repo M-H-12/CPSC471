@@ -179,17 +179,19 @@ def course_textbook(request):
 
     if request.method == "PUT":
         course = Course.objects.get(pk=content['course_id'])
-        textbook = Textbook.objects.get(isbn=content['isbn'], book_no=content['book_no'])
+        textbook = Textbook.objects.get(isbn=content['isbn'])
         setattr(textbook, "course", course)
         textbook.full_clean()
         textbook.save()
         return JsonResponse({'response': "success", 'content': course.json_data(include_prerequisites=False)})
 
     if request.method == "DELETE":
-        textbook = Textbook.objects.get(isbn=content['isbn'], book_no=content['book_no'])
-        textbook.course = None
-        textbook.save()
-        return JsonResponse({'response': "success"})
+        course = Course.objects.get(pk=content['course_id'])
+        textbook = Textbook.objects.get(isbn=content['isbn'])
+        course.required_textbooks.remove(textbook)
+        course.full_clean()
+        course.save()
+        return JsonResponse({'response': "success", 'content': course.json_data(include_prerequisites=False)})
 
     response = JsonResponse({'error': "Request not met."})
     response.status_code = 405
@@ -227,7 +229,7 @@ def offering_room(request):
         offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
         offering.room = None
         offering.delete()
-        return JsonResponse({'response': 'Success'})
+        return JsonResponse({'response': 'success', 'content': room.json_data()})
 
     if request.method == "PUT":
         course = Course.objects.get(pk=content['course_id'])
@@ -236,7 +238,7 @@ def offering_room(request):
         offering.room = room
         offering.full_clean()
         offering.save()
-        return JsonResponse({'response': 'Success'})
+        return JsonResponse({'response': 'Success', 'content': room.json_data()})
 
     response = JsonResponse({'error': "Request not met."})
     response.status_code = 405
@@ -246,28 +248,27 @@ def offering_room(request):
 def offering_time(request):
     content = json.loads(request.body)['content']
 
+    course = Course.objects.get(pk=content['course_id'])
+    offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
+
     if request.method == "POST":
-        course = Course.objects.get(pk=content['course_id'])
-        offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
         offering_time = OfferingDayAndTime.objects.create(offering=offering,
                                                           day=content['day'],
                                                           hour_from=content['hour_from'],
                                                           hour_to=content['hour_to'])
         offering_time.full_clean()
         offering_time.save()
-        return JsonResponse({'response': 'offering_time created.'})
+        return JsonResponse({'response': 'offering_time created', 'content': offering.json_data(True)})
 
     if request.method == "DELETE":
-        course = Course.objects.get(pk=content['course_id'])
-        offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
-        offering_time = OfferingDayAndTime.objects.create(offering=offering,
-                                                          day=content['day'],
-                                                          hour_from=content['hour_from'],
-                                                          hour_to=content['hour_to'])
-        offering_time.offering = None
-        offering_time.save()
+        offering_time = OfferingDayAndTime.objects.get(offering=offering,
+                                                       day=content['day'],
+                                                       hour_from=content['hour_from'],
+                                                       hour_to=content['hour_to'])
+        offering_time.delete()
+        return JsonResponse({'response': 'offering_time created', 'content': offering.json_data(True)})
 
-    response = JsonResponse("error: Request not met.")
+    response = JsonResponse({"error": "request not met."})
     response.status_code = 405
     return response
 
@@ -503,22 +504,19 @@ def material(request):
 def student_textbook(request):
     content = json.loads(request.body)['content']
 
+    student = Student.objects.get(pk=content['sin'])
+    textbook = Textbook.objects.get(isbn=content['isbn'], book_no=content['book_no'])
+
     if request.method == "POST":
-        student = Student.objects.get(pk=content['sin'])
-        course = Course.objects.get(pk=content['course_id'])
-        textbook = Textbook.objects.create(student=student, course=course, isbn=content['isbn'],
-                                           book_no=content['book_no'])
+        textbook.student = student
         textbook.full_clean()
         textbook.save()
-        return JsonResponse({'response': 'Student textbook created.'})
+        return JsonResponse({'response': 'success', 'content': student.json_data()})
+
     if request.method == "DELETE":
-        student = Student.objects.get(pk=content['sin'])
-        course = Course.objects.get(pk=content['course_id'])
-        textbook = Textbook.objects.create(student=student, course=course, isbn=content['isbn'],
-                                           book_no=content['book_no'])
         textbook.student = None
-        textbook.course = None
         textbook.save()
+        return JsonResponse({'response': 'Student textbook deleted.'})
 
     response = JsonResponse("error: Request not met.")
     response.status_code = 405
@@ -581,6 +579,7 @@ def textbook_author(request):
         textbook_author.full_clean()
         textbook_author.save()
         return JsonResponse({'response': 'Textbook_author created.'})
+
     if request.method == "DELETE":
         textbook = Textbook.objects.get(isbn=content['isbn'], book_no=content['book_no'])
         textbook_author = TextbookAuthor.objects.get(textbook=textbook, author=content['author'])
@@ -598,7 +597,7 @@ def textbook(request):
     if request.method == "GET":
         try:
             textbook1 = Textbook.objects.get(book_no=inputInfo['book_no'], isbn=inputInfo['isbn'])
-            return JsonResponse({"response": textbook1.json_data()})
+            return JsonResponse({'response': "success", "content": textbook1.json_data()})
         except Textbook.DoesNotExist:
             return JsonResponse({"error": "Textbook with key:" + str(content['book_no']) +
                                           "," + str(content['isbn']) + " does not exist."})
@@ -763,20 +762,21 @@ def counsels(request):
         content = json.loads(request.body)['content']
     except KeyError:
         return JsonResponse({"error": "Please wrap your request body with 'content' "})
+
     if request.method == "POST":
-        counselor = Counselor.objects.get(pk=content['counselor_id'])
-        student = Student.objects.get(pk=content['student_id'])
+        counselor = Counselor.objects.get(pk=content['counselor_sin'])
+        student = Student.objects.get(pk=content['student_sin'])
         counselor.counsels.add(student)
         counselor.full_clean()
         counselor.save()
         return JsonResponse({'response': "success", 'content': counselor.json_data()})
 
     if request.method == "DELETE":
-        counselor = Counselor.objects.get(pk=content['counselor_id'])
-        student = Student.objects.get(pk=content['student_id'])
+        counselor = Counselor.objects.get(pk=content['counselor_sin'])
+        student = Student.objects.get(pk=content['student_sin'])
         counselor.counsels.remove(student)
         counselor.save()
-        return JsonResponse({'response': "success"})
+        return JsonResponse({'response': "success", 'content': counselor.json_data()})
 
     response = JsonResponse({'error': "Request not met."})
     response.status_code = 405
