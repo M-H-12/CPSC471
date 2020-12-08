@@ -6,7 +6,6 @@ from django.db.utils import IntegrityError
 import json
 import datetime
 from .models import *
-#from builtins import None
 
 
 def person(request):
@@ -122,10 +121,8 @@ def course(request):
 
 
 def teacher_office_hours(request):
-    try:
-        content = json.loads(request.body)['content']
-    except KeyError:
-        return JsonResponse({"error": "Please wrap your request body with 'content' "})
+    content = json.loads(request.body)['content']
+
     if request.methods == "POST":
         teacher = Teacher.objects.get(pk=content['sin'])
         teacher_office_hour = TeacherOfficeHour.objects.create(teacher=teacher, day=content['day'],
@@ -148,7 +145,7 @@ def teacher_office_hours(request):
     return response
 
 
-def can_teach(request):
+def teacher_can_teach(request):
     try:
         content = json.loads(request.body)['content']
     except KeyError:
@@ -163,7 +160,7 @@ def can_teach(request):
 
     if request.method == "DELETE":
         teacher = Teacher.objects.get(pk=content['sin'])
-        teacher.can_teach=None
+        teacher.can_teach = None
         teacher.save()
         return JsonResponse({'response': "success"})
 
@@ -172,7 +169,7 @@ def can_teach(request):
     return response
 
 
-def add_textbook(request):
+def course_textbook(request):
     try:
         content = json.loads(request.body)['content']
     except KeyError:
@@ -188,7 +185,7 @@ def add_textbook(request):
 
     if request.method == "DELETE":
         textbook = Textbook.objects.get(isbn=content['isbn'], book_no=content['book_no'])
-        textbook.course=None
+        textbook.course = None
         textbook.save()
         return JsonResponse({'response': "success"})
 
@@ -255,15 +252,15 @@ def teacher(request):
 
 
 def offering_room(request):
-    
     content = json.loads(request.body)['content']
-    
+
     if request.method == "DELETE":
         course = Course.objects.get(pk=content['course_id'])
         offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
         offering.room = None
         offering.delete()
         return JsonResponse({'response': 'Success'})
+
     if request.method == "PUT":
         course = Course.objects.get(pk=content['course_id'])
         offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
@@ -272,7 +269,7 @@ def offering_room(request):
         offering.full_clean()
         offering.save()
         return JsonResponse({'response': 'Success'})
-    
+
     response = JsonResponse({'error': "Request not met."})
     response.status_code = 405
     return response
@@ -280,31 +277,31 @@ def offering_room(request):
 
 def offering_time(request):
     content = json.loads(request.body)['content']
-    
+
     if request.method == "POST":
         course = Course.objects.get(pk=content['course_id'])
         offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
-        offering_time = OfferingDayAndTime.objects.create(offering = offering, 
+        offering_time = OfferingDayAndTime.objects.create(offering=offering,
                                                           day=content['day'],
                                                           hour_from=content['hour_from'],
                                                           hour_to=content['hour_to'])
         offering_time.full_clean()
         offering_time.save()
         return JsonResponse({'response': 'offering_time created.'})
+
     if request.method == "DELETE":
         course = Course.objects.get(pk=content['course_id'])
         offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
-        offering_time = OfferingDayAndTime.objects.create(offering = offering, 
+        offering_time = OfferingDayAndTime.objects.create(offering=offering,
                                                           day=content['day'],
                                                           hour_from=content['hour_from'],
                                                           hour_to=content['hour_to'])
         offering_time.offering = None
-        offering_time.delete()
+        offering_time.save()
 
     response = JsonResponse("error: Request not met.")
     response.status_code = 405
     return response
-        
 
 
 def offering(request):
@@ -537,22 +534,24 @@ def material(request):
 
 def student_textbook(request):
     content = json.loads(request.body)['content']
-    
+
     if request.method == "POST":
         student = Student.objects.get(pk=content['sin'])
         course = Course.objects.get(pk=content['course_id'])
-        textbook = Textbook.objects.create(student=student, course = course, isbn = content['isbn'], book_no=content['book_no'])
+        textbook = Textbook.objects.create(student=student, course=course, isbn=content['isbn'],
+                                           book_no=content['book_no'])
         textbook.full_clean()
         textbook.save()
         return JsonResponse({'response': 'Student textbook created.'})
     if request.method == "DELETE":
         student = Student.objects.get(pk=content['sin'])
         course = Course.objects.get(pk=content['course_id'])
-        textbook = Textbook.objects.create(student=student, course = course, isbn = content['isbn'], book_no=content['book_no'])
+        textbook = Textbook.objects.create(student=student, course=course, isbn=content['isbn'],
+                                           book_no=content['book_no'])
         textbook.student = None
         textbook.course = None
-        textbook.delete()
-    
+        textbook.save()
+
     response = JsonResponse("error: Request not met.")
     response.status_code = 405
     return response
@@ -607,18 +606,18 @@ def student(request):
 
 def textbook_author(request):
     content = json.loads(request.body)['content']
-    
+
     if request.method == "POST":
-        textbook = Textbook.objects.get(isbn = content['isbn'], book_no = content['book_no'])
-        textbook_author = TextbookAuthor.objects.create(textbook = textbook, author = content['author'])
+        textbook = Textbook.objects.get(isbn=content['isbn'], book_no=content['book_no'])
+        textbook_author = TextbookAuthor.objects.create(textbook=textbook, author=content['author'])
         textbook_author.full_clean()
         textbook_author.save()
         return JsonResponse({'response': 'Textbook_author created.'})
     if request.method == "DELETE":
-        textbook = Textbook.objects.get(isbn = content['isbn'], book_no = content['book_no'])
-        textbook_author = TextbookAuthor.objects.get(textbook = textbook, author = content['author'])
+        textbook = Textbook.objects.get(isbn=content['isbn'], book_no=content['book_no'])
+        textbook_author = TextbookAuthor.objects.get(textbook=textbook, author=content['author'])
         textbook_author.textbook = None
-        textbook_author.delete()
+        textbook_author.save()
 
     response = JsonResponse("error: Request not met.")
     response.status_code = 405
@@ -744,7 +743,8 @@ def counselor_office_hours(request):
             office_hours = CounselorOfficeHour.objects.get(counselor_id=content['counselor_id'])
             return JsonResponse({'response': "success", 'content': office_hours.json_data()})
         except CounselorOfficeHour.DoesNotExist:
-            return JsonResponse({"error": "Counselor with id " + str(content['counselor_id']) + " does not have any office hours."})
+            return JsonResponse(
+                {"error": "Counselor with id " + str(content['counselor_id']) + " does not have any office hours."})
         except KeyError:
             return JsonResponse({"error": "No id included"})
 
@@ -869,7 +869,7 @@ def schedule(request):
 
     if request.method == "POST":
         schedule = Schedule.objects.create(offering=offering, student=student, semester=content['semester'],
-                                         grade=content['grade'])
+                                           grade=content['grade'])
         schedule.full_clean()
         schedule.save()
         return JsonResponse({"response": schedule.json_data()})
