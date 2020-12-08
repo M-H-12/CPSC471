@@ -3,66 +3,11 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.db.utils import IntegrityError
+from django.contrib.auth.models import Permission, User
+from django.contrib.contenttypes.models import ContentType
 import json
 import datetime
 from .models import *
-
-
-def person(request):
-    try:
-        content = json.loads(request.body)['content']
-    except KeyError:
-        return JsonResponse({"error": "Please wrap your request body with 'content' "})
-
-    if request.method == "GET":
-        try:
-            person = Person.objects.get(pk=content['sin'])
-            return JsonResponse({'response': "success", 'content': person.json_data()})
-        except Person.DoesNotExist:
-            return JsonResponse({"error": "Person with sin " + str(content['sin']) + " does not exist."})
-        except KeyError:
-            return JsonResponse({"error": "No id included"})
-
-    if request.method == "POST":
-        try:
-            person = Person.objects.create(**content)
-            person.full_clean()
-            person.save()
-            return JsonResponse({"response": person.json_data()})
-        except ValidationError as e:
-            person.delete()  # FIXME if sin not provided, the object will still be created (we can't delete it)
-            return JsonResponse({'error': e.message_dict})
-        except IntegrityError:
-            return JsonResponse({'error': "Object could not be created."})
-
-    if request.method == "PUT":
-        try:
-            person = Person.objects.get(pk=content['sin'])
-        except Person.DoesNotExist:
-            return JsonResponse({"error": "Person with sin " + str(content['sin']) + " does not exist."})
-        except KeyError:
-            return JsonResponse({"error": "No sin included"})
-
-        try:
-            for attr, value in content.items():
-                setattr(person, attr, value)
-            person.full_clean()
-            person.save()
-            return JsonResponse({'response': "success", 'content': person.json_data()})
-        except ValidationError as e:
-            return JsonResponse({'error': e.message_dict})
-
-    if request.method == "DELETE":
-        try:
-            person = Person.objects.get(pk=content['sin'])
-            person.delete()
-            return JsonResponse({'response': str(person.name) + ' has been deleted.'})
-        except Person.DoesNotExist:
-            return JsonResponse({"error": "Person with sin " + str(content['sin']) + " does not exist."})
-
-    response = JsonResponse({'error': "Request not met."})
-    response.status_code = 405
-    return response
 
 
 def course(request):
@@ -78,7 +23,7 @@ def course(request):
         except Course.DoesNotExist:
             return JsonResponse({"error": "Course with course_id " + str(content['course_id']) + " does not exist."})
 
-    if request.method == "POST":
+    if request.method == "POST" and request.user.has_perm('api.change_admin'):
         try:
             course = Course.objects.create(**content)
             course.full_clean()
@@ -90,7 +35,7 @@ def course(request):
         except IntegrityError:
             return JsonResponse({'error': "Object could not be created."})
 
-    if request.method == "PUT":
+    if request.method == "PUT" and request.user.has_perm('api.change_admin'):
         try:
             course = Course.objects.get(pk=content['course_id'])
         except Course.DoesNotExist:
@@ -107,7 +52,7 @@ def course(request):
         except ValidationError as e:
             return JsonResponse({'error': e.message_dict})
 
-    if request.method == "DELETE":
+    if request.method == "DELETE" and request.user.has_perm('api.change_admin'):
         try:
             course = Course.objects.get(pk=content['course_id'])
             course.delete()
@@ -123,7 +68,7 @@ def course(request):
 def teacher_office_hours(request):
     content = json.loads(request.body)['content']
 
-    if request.method == "POST":
+    if request.method == "POST" and request.user.has_perm('api.change_teacher'):
         teacher = Teacher.objects.get(pk=content['sin'])
         teacher_office_hour = TeacherOfficeHour.objects.create(teacher=teacher, day=content['day'],
                                                                hour_from=content['hour_from'],
@@ -132,7 +77,7 @@ def teacher_office_hours(request):
         teacher_office_hour.save()
         return JsonResponse({'response': "success"})
 
-    if request.method == "DELETE":
+    if request.method == "DELETE" and request.user.has_perm('api.change_teacher'):
         teacher = Teacher.objects.get(pk=content['sin'])
         teacher_office_hour = TeacherOfficeHour.objects.get(teacher=teacher, day=content['day'],
                                                             hour_from=content['hour_from'],
@@ -154,13 +99,13 @@ def teacher_can_teach(request):
     course = Course.objects.get(pk=content['course_id'])
     teacher = Teacher.objects.get(pk=content['sin'])
 
-    if request.method == "PUT":
+    if request.method == "PUT" and request.user.has_perm('api.change_teacher'):
         teacher.can_teach.add(course)
         teacher.full_clean()
         teacher.save()
         return JsonResponse({'response': "success", 'content': teacher.json_data()})
 
-    if request.method == "DELETE":
+    if request.method == "DELETE" and request.user.has_perm('api.change_teacher'):
         teacher.can_teach.remove(course)
         teacher.full_clean()
         teacher.save()
@@ -177,7 +122,7 @@ def course_textbook(request):
     except KeyError:
         return JsonResponse({"error": "Please wrap your request body with 'content' "})
 
-    if request.method == "PUT":
+    if request.method == "PUT" and request.user.has_perm('api.change_teacher'):
         course = Course.objects.get(pk=content['course_id'])
         textbook = Textbook.objects.get(isbn=content['isbn'])
         setattr(textbook, "course", course)
@@ -185,7 +130,7 @@ def course_textbook(request):
         textbook.save()
         return JsonResponse({'response': "success", 'content': course.json_data(include_prerequisites=False)})
 
-    if request.method == "DELETE":
+    if request.method == "DELETE" and request.user.has_perm('api.change_teacher'):
         course = Course.objects.get(pk=content['course_id'])
         textbook = Textbook.objects.get(isbn=content['isbn'])
         course.required_textbooks.remove(textbook)
@@ -204,12 +149,46 @@ def teacher(request):
     except KeyError:
         return JsonResponse({"error": "Please wrap your request body with 'content' "})
 
-    if request.method == "POST":
+    if request.method == "GET":
+        person = Teacher.objects.get(pk=content['sin'])
+        return JsonResponse({'response': "success", 'content': person.json_data()})
+
+    if request.method == "PUT" and request.user.has_perm('api.change_admin'):
+        person = Teacher.objects.get(pk=content['sin'])
+
+        for attr, value in content.items():
+            setattr(person, attr, value)
+        person.full_clean()
+        person.save()
+        return JsonResponse({'response': "success", 'content': person.json_data()})
+
+    if request.method == "DELETE"and request.user.has_perm('api.change_admin'):
+        person = Teacher.objects.get(pk=content['sin'])
+        person.delete()
+        User.objects.get(username=content['sin']).delete()
+        return JsonResponse({'response': str(person.name) + ' has been deleted.'})
+
+    if request.method == "POST" and request.user.has_perm('api.change_admin'):
         try:
             teacher = Teacher.objects.create(**content)
             teacher.full_clean()
             teacher.save()
-            return JsonResponse({"response": teacher.json_data()})
+
+            content_type1 = ContentType.objects.get_for_model(Teacher)
+            content_type3 = ContentType.objects.get_for_model(Student)
+            permission1 = Permission.objects.get(
+                codename='change_teacher',
+                content_type=content_type1,
+            )
+            permission3 = Permission.objects.get(
+                codename='change_student',
+                content_type=content_type3,
+            )
+            user = User.objects.create_user(username=content['sin'], password=content['password'])
+            user.user_permissions.add(permission1)
+            user.user_permissions.add(permission3)
+
+            return JsonResponse({'response': "success", "content": teacher.json_data()})
         except ValidationError as e:
             teacher.delete()
             return JsonResponse({'error': e.message_dict})
@@ -224,14 +203,14 @@ def teacher(request):
 def offering_room(request):
     content = json.loads(request.body)['content']
 
-    if request.method == "DELETE":
+    if request.method == "DELETE" and request.user.has_perm('api.change_teacher'):
         course = Course.objects.get(pk=content['course_id'])
         offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
         offering.room = None
         offering.delete()
         return JsonResponse({'response': 'success', 'content': room.json_data()})
 
-    if request.method == "PUT":
+    if request.method == "PUT" and request.user.has_perm('api.change_teacher'):
         course = Course.objects.get(pk=content['course_id'])
         offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
         room = Room.objects.get(pk=content['room_no'])
@@ -251,7 +230,7 @@ def offering_time(request):
     course = Course.objects.get(pk=content['course_id'])
     offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
 
-    if request.method == "POST":
+    if request.method == "POST" and request.user.has_perm('api.change_teacher'):
         offering_time = OfferingDayAndTime.objects.create(offering=offering,
                                                           day=content['day'],
                                                           hour_from=content['hour_from'],
@@ -260,7 +239,7 @@ def offering_time(request):
         offering_time.save()
         return JsonResponse({'response': 'offering_time created', 'content': offering.json_data(True)})
 
-    if request.method == "DELETE":
+    if request.method == "DELETE" and request.user.has_perm('api.change_teacher'):
         offering_time = OfferingDayAndTime.objects.get(offering=offering,
                                                        day=content['day'],
                                                        hour_from=content['hour_from'],
@@ -293,7 +272,7 @@ def offering(request):
         except KeyError:
             return JsonResponse({"error": "No offering_id included"})
 
-    if request.method == "POST":
+    if request.method == "POST" and request.user.has_perm('api.change_admin'):
         try:
             course = Course.objects.get(pk=content['course_id'])
             offering = Offering.objects.create(**content, course=course)
@@ -308,7 +287,7 @@ def offering(request):
 
     # NOTE No update because we dont want any editing of offering
 
-    if request.method == "DELETE":
+    if request.method == "DELETE" and request.user.has_perm('api.change_admin'):
         try:
             course = Course.objects.get(pk=content['course_id'])
             offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
@@ -328,7 +307,7 @@ def prerequisite(request):
     except KeyError:
         return JsonResponse({"error": "Please wrap your request body with 'content' "})
 
-    if request.method == "PUT":
+    if request.method == "PUT" and request.user.has_perm('api.change_admin'):
         try:
             prereq = Course.objects.get(pk=content['prerequisite_id'])
             parent = Course.objects.get(pk=content['parent_id'])
@@ -339,7 +318,7 @@ def prerequisite(request):
         prereq.save()
         return JsonResponse({'response': "success", 'content': parent.json_data(include_prerequisites=True)})
 
-    if request.method == "DELETE":
+    if request.method == "DELETE" and request.user.has_perm('api.change_admin'):
         try:
             prereq = Course.objects.get(pk=content['prerequisite_id'])
         except Course.DoesNotExist:
@@ -361,11 +340,42 @@ def admin(request):
     except KeyError:
         return JsonResponse({"error": "Please wrap your request body with 'content' "})
 
+    if request.method == "GET":
+        person = Person.objects.get(pk=content['sin'])
+        return JsonResponse({'response': "success", 'content': person.json_data()})
+
     if request.method == "POST":
         try:
             administrator = Admin.objects.create(**content)
             administrator.full_clean()
             administrator.save()
+
+            content_type = ContentType.objects.get_for_model(Admin)
+            content_type1 = ContentType.objects.get_for_model(Teacher)
+            content_type2 = ContentType.objects.get_for_model(Counselor)
+            content_type3 = ContentType.objects.get_for_model(Student)
+            permission = Permission.objects.get(
+                codename='change_admin',
+                content_type=content_type,
+            )
+            permission1 = Permission.objects.get(
+                codename='change_teacher',
+                content_type=content_type1,
+            )
+            permission2 = Permission.objects.get(
+                codename='change_counselor',
+                content_type=content_type2,
+            )
+            permission3 = Permission.objects.get(
+                codename='change_student',
+                content_type=content_type3,
+            )
+            user = User.objects.create_user(username=content['sin'], password=content['password'])
+            user.user_permissions.add(permission)
+            user.user_permissions.add(permission1)
+            user.user_permissions.add(permission2)
+            user.user_permissions.add(permission3)
+
             return JsonResponse({"response": administrator.json_data()})
         except ValidationError as e:
             administrator.delete()
@@ -392,6 +402,7 @@ def admin(request):
         try:
             administrator = Admin.objects.get(pk=content['sin'])
             administrator.delete()
+            User.objects.get(username=content['sin']).delete()
             return JsonResponse({'response': 'success'})
         except Admin.DoesNotExist:
             return JsonResponse({"error": "Admin with sin " + str(content['sin']) + " does not exist."})
@@ -415,7 +426,7 @@ def assignment(request):
         assignment = Assignment.objects.get(offering=offering, assign_no=content['assign_no'])
         return JsonResponse({"response": assignment.json_data()})
 
-    if request.method == "POST":
+    if request.method == "POST" and request.user.has_perm('api.change_teacher'):
         try:
             course = Course.objects.get(pk=content['course_id'])
             offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
@@ -428,7 +439,7 @@ def assignment(request):
             assignment.delete()
             return JsonResponse({'error': e.message_dict})
 
-    if request.method == "PUT":
+    if request.method == "PUT" and request.user.has_perm('api.change_teacher'):
         course = Course.objects.get(pk=content['course_id'])
         offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
         assignment = Assignment.objects.get(offering=offering, assign_no=content['assign_no'])
@@ -442,7 +453,7 @@ def assignment(request):
         except ValidationError as e:
             return JsonResponse({'error': e.message_dict})
 
-    if request.method == "DELETE":
+    if request.method == "DELETE" and request.user.has_perm('api.change_teacher'):
         course = Course.objects.get(pk=content['course_id'])
         offering = Offering.objects.get(course=course, offering_no=content['offering_no'])
         assignment = Assignment.objects.get(offering=offering, assign_no=content['assign_no'])
@@ -467,7 +478,7 @@ def material(request):
         material = Material.objects.get(offering=offering, material_no=content['material_no'])
         return JsonResponse({"response": material.json_data()})
 
-    if request.method == "POST":
+    if request.method == "POST" and request.user.has_perm('api.change_teacher'):
         try:
             material = Material.objects.create(offering=offering, material_no=content['material_no'],
                                                name=content['name'], category=content['category'],
@@ -479,7 +490,7 @@ def material(request):
             material.delete()
             return JsonResponse({'error': e.message_dict})
 
-    if request.method == "PUT":
+    if request.method == "PUT" and request.user.has_perm('api.change_teacher'):
         material = Material.objects.get(offering=offering, material_no=content['material_no'])
 
         try:
@@ -491,7 +502,7 @@ def material(request):
         except ValidationError as e:
             return JsonResponse({'error': e.message_dict})
 
-    if request.method == "DELETE":
+    if request.method == "DELETE" and request.user.has_perm('api.change_teacher'):
         material = Material.objects.get(offering=offering, material_no=content['material_no'])
         material.delete()
         return JsonResponse({'response': 'success'})
@@ -507,13 +518,13 @@ def student_textbook(request):
     student = Student.objects.get(pk=content['sin'])
     textbook = Textbook.objects.get(isbn=content['isbn'], book_no=content['book_no'])
 
-    if request.method == "POST":
+    if request.method == "POST" and request.user.has_perm('api.change_student'):
         textbook.student = student
         textbook.full_clean()
         textbook.save()
         return JsonResponse({'response': 'success', 'content': student.json_data()})
 
-    if request.method == "DELETE":
+    if request.method == "DELETE" and request.user.has_perm('api.change_student'):
         textbook.student = None
         textbook.save()
         return JsonResponse({'response': 'Student textbook deleted.'})
@@ -533,7 +544,7 @@ def student(request):
         except Student.DoesNotExist:
             return JsonResponse({"error": "Student with SIN:" + str(content['sin']) + " does not exist."})
 
-    if request.method == "PUT":
+    if request.method == "PUT" and request.user.has_perm('api.change_admin'):
         student1 = Student.objects.get(pk=content['sin'])
 
         try:
@@ -545,27 +556,37 @@ def student(request):
         except ValidationError as e:
             return JsonResponse({'error': e.message_dict})
 
-    if request.method == "POST":
+    if request.method == "POST" and request.user.has_perm('api.change_admin'):
         try:
             student = Student.objects.create(**content)
             student.full_clean()
             student.save()
+
+            content_type = ContentType.objects.get_for_model(Student)
+            permission = Permission.objects.get(
+                codename='change_student',
+                content_type=content_type,
+            )
+            user = User.objects.create_user(username=content['sin'], password=content['password'])
+            user.user_permissions.add(permission)
+
             return JsonResponse({"response": student.json_data()})
         except ValidationError as e:
             student.delete()
             return JsonResponse({'error': e.message_dict})
 
-    if request.method == "DELETE":
+    if request.method == "DELETE" and request.user.has_perm('api.change_admin'):
         try:
             student1 = Student.objects.get(pk=content['sin'])
             student1.delete()
+            User.objects.get(username=content['sin']).delete()
             return JsonResponse({"response": "success"})
         except Student.DoesNotExist:
             return JsonResponse({"error": "Student with SIN: " + str(content['sin']) + " does not exist."})
         except ProtectedError:
             return JsonResponse({"error": "Cannot delete student " + str(instance.id)})
 
-    response = JsonResponse("error: Request not met.")
+    response = JsonResponse({"error": "request not met."})
     response.status_code = 405
     return response
 
@@ -573,14 +594,14 @@ def student(request):
 def textbook_author(request):
     content = json.loads(request.body)['content']
 
-    if request.method == "POST":
+    if request.method == "POST" and request.user.has_perm('api.change_admin'):
         textbook = Textbook.objects.get(isbn=content['isbn'], book_no=content['book_no'])
         textbook_author = TextbookAuthor.objects.create(textbook=textbook, author=content['author'])
         textbook_author.full_clean()
         textbook_author.save()
         return JsonResponse({'response': 'Textbook_author created.'})
 
-    if request.method == "DELETE":
+    if request.method == "DELETE" and request.user.has_perm('api.change_admin'):
         textbook = Textbook.objects.get(isbn=content['isbn'], book_no=content['book_no'])
         textbook_author = TextbookAuthor.objects.get(textbook=textbook, author=content['author'])
         textbook_author.textbook = None
@@ -602,7 +623,7 @@ def textbook(request):
             return JsonResponse({"error": "Textbook with key:" + str(content['book_no']) +
                                           "," + str(content['isbn']) + " does not exist."})
 
-    if request.method == "PUT":
+    if request.method == "PUT" and request.user.has_perm('api.change_admin'):
         textbook1 = Textbook.objects.get(book_no=inputInfo['book_no'], isbn=inputInfo['isbn'])
 
         try:
@@ -614,7 +635,7 @@ def textbook(request):
         except ValidationError as e:
             return JsonResponse({'error': e.message_dict})
 
-    if request.method == "POST":
+    if request.method == "POST" and request.user.has_perm('api.change_admin'):
         try:
             textbook = Textbook.objects.create(**inputInfo)
             textbook.full_clean()
@@ -626,7 +647,7 @@ def textbook(request):
         except IntegrityError:
             return JsonResponse({'error': "Object could not be created."})
 
-    if request.method == "DELETE":
+    if request.method == "DELETE" and request.user.has_perm('api.change_admin'):
         try:
             textbook1 = Textbook.objects.get(book_no=inputInfo['book_no'], isbn=inputInfo['isbn'])
             textbook1.delete()
@@ -650,18 +671,33 @@ def counselor(request):
 
     if request.method == "GET":
         try:
-            counselor = Counselor.objects.get(pk=content['id'])
+            counselor = Counselor.objects.get(pk=content['sin'])
             return JsonResponse({'response': "success", 'content': counselor.json_data()})
         except Counselor.DoesNotExist:
-            return JsonResponse({"error": "Counselor with id " + str(content['id']) + " does not exist."})
+            return JsonResponse({"error": "Counselor with id " + str(content['sin']) + " does not exist."})
         except KeyError:
             return JsonResponse({"error": "No id included"})
 
-    if request.method == "POST":
+    if request.method == "POST" and request.user.has_perm('api.change_admin'):
         try:
             counselor = Counselor.objects.create(**content)
             counselor.full_clean()
             counselor.save()
+
+            content_type2 = ContentType.objects.get_for_model(Counselor)
+            content_type3 = ContentType.objects.get_for_model(Student)
+            permission2 = Permission.objects.get(
+                codename='change_counselor',
+                content_type=content_type2,
+            )
+            permission3 = Permission.objects.get(
+                codename='change_student',
+                content_type=content_type3,
+            )
+            user = User.objects.create_user(username=content['sin'], password=content['password'])
+            user.user_permissions.add(permission2)
+            user.user_permissions.add(permission3)
+
             return JsonResponse({"response": counselor.json_data()})
         except ValidationError as e:
             counselor.delete()
@@ -669,11 +705,11 @@ def counselor(request):
         except IntegrityError:
             return JsonResponse({'error': "Object could not be created."})
 
-    if request.method == "PUT":
+    if request.method == "PUT" and request.user.has_perm('api.change_admin'):
         try:
-            counselor = Counselor.objects.get(pk=content['id'])
+            counselor = Counselor.objects.get(pk=content['sin'])
         except Counselor.DoesNotExist:
-            return JsonResponse({"error": "Counselor with id " + str(content['id']) + " does not exist."})
+            return JsonResponse({"error": "Counselor with id " + str(content['sin']) + " does not exist."})
         except KeyError:
             return JsonResponse({"error": "No id included"})
 
@@ -686,13 +722,14 @@ def counselor(request):
         except ValidationError as e:
             return JsonResponse({'error': e.message_dict})
 
-    if request.method == "DELETE":
+    if request.method == "DELETE" and request.user.has_perm('api.change_admin'):
         try:
-            counselor = Counselor.objects.get(pk=content['id'])
+            counselor = Counselor.objects.get(pk=content['sin'])
             counselor.delete()
+            User.objects.get(username=content['sin']).delete()
             return JsonResponse({'response': str(counselor.name) + ' has been deleted.'})
         except Counselor.DoesNotExist:
-            return JsonResponse({"error": "Counselor with id " + str(content['id']) + " does not exist."})
+            return JsonResponse({"error": "Counselor with id " + str(content['sin']) + " does not exist."})
 
     response = JsonResponse({'error': "Request not met."})
     response.status_code = 405
@@ -715,7 +752,7 @@ def counselor_office_hours(request):
         except KeyError:
             return JsonResponse({"error": "No id included"})
 
-    if request.method == "POST":
+    if request.method == "POST" and request.user.has_perm('api.change_counselor'):
         try:
             office_hours = CounselorOfficeHour.objects.create(**content)
             office_hours.full_clean()
@@ -727,7 +764,7 @@ def counselor_office_hours(request):
         except IntegrityError:
             return JsonResponse({'error': "Object could not be created."})
 
-    if request.method == "PUT":
+    if request.method == "PUT" and request.user.has_perm('api.change_counselor'):
         try:
             office_hours = CounselorOfficeHour.objects.get(counselor_id=content['counselor_id'])
         except CounselorOfficeHour.DoesNotExist:
@@ -744,7 +781,7 @@ def counselor_office_hours(request):
         except ValidationError as e:
             return JsonResponse({'error': e.message_dict})
 
-    if request.method == "DELETE":
+    if request.method == "DELETE" and request.user.has_perm('api.change_counselor'):
         try:
             office_hours = CounselorOfficeHour.objects.get(counselor_id=content['counselor_id'])
             office_hours.delete()
@@ -763,7 +800,7 @@ def counsels(request):
     except KeyError:
         return JsonResponse({"error": "Please wrap your request body with 'content' "})
 
-    if request.method == "POST":
+    if request.method == "POST" and request.user.has_perm('api.change_counselor'):
         counselor = Counselor.objects.get(pk=content['counselor_sin'])
         student = Student.objects.get(pk=content['student_sin'])
         counselor.counsels.add(student)
@@ -771,7 +808,7 @@ def counsels(request):
         counselor.save()
         return JsonResponse({'response': "success", 'content': counselor.json_data()})
 
-    if request.method == "DELETE":
+    if request.method == "DELETE" and request.user.has_perm('api.change_counselor'):
         counselor = Counselor.objects.get(pk=content['counselor_sin'])
         student = Student.objects.get(pk=content['student_sin'])
         counselor.counsels.remove(student)
@@ -793,7 +830,7 @@ def room(request):
         room = Room.objects.get(pk=content['room_no'])
         return JsonResponse({"response": room.json_data()})
 
-    if request.method == "POST":
+    if request.method == "POST" and request.user.has_perm('api.change_admin'):
         try:
             room = Room.objects.create(**content)
             room.full_clean()
@@ -803,7 +840,7 @@ def room(request):
             room.delete()
             return JsonResponse({'error': e.message_dict})
 
-    if request.method == "PUT":
+    if request.method == "PUT" and request.user.has_perm('api.change_admin'):
         room = Room.objects.get(pk=content['room_no'])
         try:
             for attr, value in content.items():
@@ -814,7 +851,7 @@ def room(request):
         except ValidationError as e:
             return JsonResponse({'error': e.message_dict})
 
-    if request.method == "DELETE":
+    if request.method == "DELETE" and request.user.has_perm('api.change_admin'):
         room = Room.objects.get(pk=content['room_no'])
         room.delete()
         return JsonResponse({'response': 'success'})
@@ -835,14 +872,14 @@ def schedule(request):
         schedule = Schedule.objects.get(offering=offering, student=student)
         return JsonResponse(schedule.json_data())
 
-    if request.method == "POST":
+    if request.method == "POST" and request.user.has_perm('api.change_student'):
         schedule = Schedule.objects.create(offering=offering, student=student, semester=content['semester'],
                                            grade=content['grade'])
         schedule.full_clean()
         schedule.save()
         return JsonResponse({"response": schedule.json_data()})
 
-    if request.method == "PUT":
+    if request.method == "PUT" and request.user.has_perm('api.change_student'):
         schedule = Schedule.objects.get(offering=offering, student=student)
 
         for attr, value in content.items():
@@ -851,7 +888,7 @@ def schedule(request):
         schedule.save()
         return JsonResponse({'response': "success", 'content': schedule.json_data()})
 
-    if request.method == "DELETE":
+    if request.method == "DELETE" and request.user.has_perm('api.change_student'):
         schedule = Schedule.objects.get(offering=offering, student=student)
         schedule.delete()
         return JsonResponse({'response': 'success'})
