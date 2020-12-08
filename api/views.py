@@ -83,7 +83,7 @@ def course(request):
             course = Course.objects.create(**content)
             course.full_clean()
             course.save()
-            return JsonResponse({"response": course.json_data(include_prerequisites=True)})
+            return JsonResponse({'response': "success", 'content': course.json_data(include_prerequisites=True)})
         except ValidationError as e:
             course.delete()
             return JsonResponse({'error': e.message_dict})
@@ -123,16 +123,16 @@ def course(request):
 def teacher_office_hours(request):
     content = json.loads(request.body)['content']
 
-    if request.methods == "POST":
+    if request.method == "POST":
         teacher = Teacher.objects.get(pk=content['sin'])
         teacher_office_hour = TeacherOfficeHour.objects.create(teacher=teacher, day=content['day'],
                                                                hour_from=content['hour_from'],
                                                                hour_to=content['hour_to'])
         teacher_office_hour.full_clean()
         teacher_office_hour.save()
-        return JsonResponse({'response': "success", 'content': teacher.json_data()})
+        return JsonResponse({'response': "success"})
 
-    if request.methods == "DELETE":
+    if request.method == "DELETE":
         teacher = Teacher.objects.get(pk=content['sin'])
         teacher_office_hour = TeacherOfficeHour.objects.get(teacher=teacher, day=content['day'],
                                                             hour_from=content['hour_from'],
@@ -150,19 +150,21 @@ def teacher_can_teach(request):
         content = json.loads(request.body)['content']
     except KeyError:
         return JsonResponse({"error": "Please wrap your request body with 'content' "})
+
+    course = Course.objects.get(pk=content['course_id'])
+    teacher = Teacher.objects.get(pk=content['sin'])
+
     if request.method == "PUT":
-        course = Course.objects.get(pk=content['course_id'])
-        teacher = Teacher.objects.get(pk=content['sin'])
-        setattr(teacher, "can_teach", course)
+        teacher.can_teach.add(course)
         teacher.full_clean()
         teacher.save()
         return JsonResponse({'response': "success", 'content': teacher.json_data()})
 
     if request.method == "DELETE":
-        teacher = Teacher.objects.get(pk=content['sin'])
-        teacher.can_teach = None
+        teacher.can_teach.remove(course)
+        teacher.full_clean()
         teacher.save()
-        return JsonResponse({'response': "success"})
+        return JsonResponse({'response': "success", 'content': teacher.json_data()})
 
     response = JsonResponse({'error': "Request not met."})
     response.status_code = 405
@@ -200,15 +202,6 @@ def teacher(request):
     except KeyError:
         return JsonResponse({"error": "Please wrap your request body with 'content' "})
 
-    if request.method == "GET":
-        try:
-            teacher = Teacher.objects.get(pk=content['sin'])
-            return JsonResponse(teacher.json_data())
-        except Teacher.DoesNotExist:
-            return JsonResponse({"error": "Teacher with sin " + str(content['sin']) + " does not exist."})
-        except KeyError:
-            return JsonResponse({"error": "No sin included"})
-
     if request.method == "POST":
         try:
             teacher = Teacher.objects.create(**content)
@@ -220,31 +213,6 @@ def teacher(request):
             return JsonResponse({'error': e.message_dict})
         except IntegrityError:
             return JsonResponse({'error': "Teacher could not be created."})
-
-    if request.method == "PUT":
-        try:
-            teacher = Teacher.objects.get(pk=content['sin'])
-        except Teacher.DoesNotExist:
-            return JsonResponse({"error": "Teacher with sin " + str(content['sin']) + " does not exist."})
-        except KeyError:
-            return JsonResponse({"error": "No sin included"})
-
-        try:
-            for attr, value in content.items():
-                setattr(teacher, attr, value)
-            teacher.full_clean()
-            teacher.save()
-            return JsonResponse({'response': "success", 'content': teacher.json_data()})
-        except ValidationError as e:
-            return JsonResponse({'error': e.message_dict})
-
-    if request.method == "DELETE":
-        try:
-            teacher = Teacher.objects.get(pk=content['sin'])
-            teacher.delete()
-            return JsonResponse({'response': str(teacher.name) + ' has been deleted.'})
-        except Teacher.DoesNotExist:
-            return JsonResponse({"error": "Teacher with sin " + str(content['sin']) + " does not exist."})
 
     response = JsonResponse({'error': "Request not met."})
     response.status_code = 405
