@@ -7,14 +7,17 @@ function Navigation(props) {
 		    <nav>
                 <h1>Admin</h1>
                 <ul>
-                    <Link to='create_course'>
-                        <p>Create Course</p>
-                    </Link>
                     <Link to='add_student'>
                         <p>Add Student</p>
                     </Link>
                     <Link to='add_staff'>
                         <p>Add Staff</p>
+                    </Link>
+                    <Link to='create_course'>
+                        <p>Create Course</p>
+                    </Link>
+                    <Link to='add_offering'>
+                        <p>Add Course Offering</p>
                     </Link>
                 </ul>
             </nav>
