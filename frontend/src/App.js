@@ -1,19 +1,19 @@
-import logo from "./logo.svg";
 import "./App.css";
-import Test from "./components/Test";
 import Login from "./components/Login/Login";
 import Navigation from "./components/Navigation";
 import CreateCourse from "./components/Admin/CreateCourse";
 import AddStudent from "./components/Admin/AddStudent";
 import AddStaff from "./components/Admin/AddStaff";
+import AddOffering from "./components/Admin/AddOffering";
+import TestingConnection from "./components/TestingConnection";
 
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
-import AddOffering from "./components/Admin/AddOffering";
 
 function App() {
 	return (
 		<Router>
 		    <div className="App">
+				<TestingConnection />
 				<Navigation />
 				<Switch>
 					<Route path="/" exact component={Login} />

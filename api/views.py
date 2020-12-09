@@ -7,6 +7,18 @@ import json
 import datetime
 from .models import *
 #from builtins import None
+from rest_framework.generics import ListAPIView, RetrieveAPIView
+from .serializers import StudentSerializer
+
+
+class StudentListView(ListAPIView):
+    queyset = Student.objects.all()
+    serializer_class = StudentSerializer
+
+
+class StudentDetailView(RetrieveAPIView):
+    queyset = Student.objects.all()
+    serializer_class = StudentSerializer
 
 
 @csrf_exempt
