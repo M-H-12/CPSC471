@@ -23,5 +23,8 @@ urlpatterns = [
     path('student_textbook/', views.student_textbook),
     path('textbook_author/', views.textbook_author),
     path('counselor_office_hours/', views.counselor_office_hours),
-    path('counsels/', views.counsels)
+    path('counsels/', views.counsels),
+  
+    path('', views.StudentListView.as_view()),
+    path('<pk>', views.StudentDetailView.as_view())
 ]
