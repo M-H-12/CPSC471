@@ -8,7 +8,7 @@ from django.contrib.contenttypes.models import ContentType
 import json
 import datetime
 from .models import *
-#from builtins import None
+# from builtins import None
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from .serializers import StudentSerializer
 
@@ -16,6 +16,7 @@ from .serializers import StudentSerializer
 class StudentListView(ListAPIView):
     queyset = Student.objects.all()
     serializer_class = StudentSerializer
+
 
 class StudentDetailView(RetrieveAPIView):
     queyset = Student.objects.all()
@@ -174,7 +175,7 @@ def teacher(request):
         person.save()
         return JsonResponse({'response': "success", 'content': person.json_data()})
 
-    if request.method == "DELETE"and request.user.has_perm('api.change_admin'):
+    if request.method == "DELETE" and request.user.has_perm('api.change_admin'):
         person = Teacher.objects.get(pk=content['sin'])
         person.delete()
         User.objects.get(username=content['sin']).delete()
@@ -347,6 +348,8 @@ def prerequisite(request):
 
 
 def admin(request):
+    return JsonResponse({'response': "success"})
+
     try:
         content = json.loads(request.body)['content']
     except KeyError:
@@ -904,3 +907,23 @@ def schedule(request):
         schedule = Schedule.objects.get(offering=offering, student=student)
         schedule.delete()
         return JsonResponse({'response': 'success'})
+
+
+def getAllCourses(request):
+    return JsonResponse(
+        {'response': list(map(lambda c: c.json_data(include_prerequisites=True), Course.objects.all()))})
+
+
+def getAllStudents(request):
+    return JsonResponse({'response': list(map(lambda s: s.json_data(), Student.objects.all()))})
+
+
+def getAllTeachers(request):
+    return JsonResponse({'response': list(map(lambda s: s.json_data(), Teacher.objects.all()))})
+
+
+def getAllCounselors(request):
+    return JsonResponse({'response': list(map(lambda s: s.json_data(), Counselor.objects.all()))})
+
+def getAllAdmins(request):
+    return JsonResponse({'response': list(map(lambda s: s.json_data(), Admin.objects.all()))})

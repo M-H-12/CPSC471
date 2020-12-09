@@ -26,5 +26,10 @@ urlpatterns = [
     path('counsels/', views.counsels),
   
     path('', views.StudentListView.as_view()),
-    path('<pk>', views.StudentDetailView.as_view())
+    path('<pk>', views.StudentDetailView.as_view()),
+    path('getAllCourses/', views.getAllCourses),
+    path('getAllStudents/', views.getAllStudents),
+    path('getAllTeachers/', views.getAllTeachers),
+    path('getAllCounselors/', views.getAllCounselors),
+    path('getAllAdmins/', views.getAllAdmins)
 ]
