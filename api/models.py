@@ -6,7 +6,7 @@ class Person(PolymorphicModel):
     sin = models.PositiveIntegerField(primary_key=True)  # FIXME Restrict to only being 9 in length
     name = models.CharField(max_length=255)
     gender = models.CharField(max_length=1)
-    id = models.PositiveIntegerField(unique=True)
+    id = models.PositiveIntegerField()
     password = models.CharField(max_length=50)
 
     def json_data(self, **kwargs):
@@ -32,7 +32,7 @@ class Course(models.Model):
             'course_name': self.course_name,
             'offerings': list(map(lambda offering: offering.json_data(include_course_info=False, include_room=True),
                                   self.offerings.all())),
-            'required_textbooks': list(map(lambda textbook: textbook.json_data(True), self.required_textbooks.all()))
+            'required_textbooks': list(map(lambda textbook: textbook.json_data(), self.required_textbooks.all()))
         }
         if include_prerequisites:
             course['prerequisites'] = list(map(lambda prereq: prereq.json_data(False), self.prerequisites.all()))
@@ -67,7 +67,7 @@ class Counselor(Person):
         counselor = {
             'salary': self.salary,
             'hired_date': str(self.hired_year) + "-" + self.hired_month + "-" + str(self.hired_date),
-            'counsels': list(map(lambda student: student.json_data(True), self.counsels.all())),
+            'counsels': list(map(lambda student: student.json_data(), self.counsels.all())),
             'office_hours': list(map(lambda office_hour: office_hour.json_data(True),
                                      self.officehours.all()))
         }
@@ -92,18 +92,18 @@ class CounselorOfficeHour(models.Model):
 
 
 class Teacher(Person):
-    can_teach = models.ManyToManyField(Course, blank=True)
     salary = models.FloatField()
     hired_year = models.PositiveIntegerField(editable=False)
     hired_date = models.PositiveIntegerField(editable=False)
     hired_month = models.CharField(editable=False, max_length=9, blank=False)
+    can_teach = models.ManyToManyField(Course, blank=True)
 
     def json_data(self, **kwargs):
         teacher = {
             'salary': self.salary,
             'hired_date': str(self.hired_year) + "-" + self.hired_month + "-" + str(self.hired_date),
             'can_teach': list(map(lambda course: course.json_data(False), self.can_teach.all())),
-            'office_hours': list(map(lambda hours: hours.json_data(True), self.officehours.all()))
+            'office_hours': list(map(lambda hours: hours.json_data(), self.officehours.all()))
         }
         json_data = super().json_data()
         json_data.update(teacher)
@@ -152,7 +152,7 @@ class Offering(models.Model):
         offering = {
             'offering_no': self.offering_no,
             'no_of_students': self.no_of_students,
-            'times': list(map(lambda time: time.json_data(True), self.times.all()))
+            'times': list(map(lambda time: time.json_data(), self.times.all()))
         }
         if include_course_info:
             offering['course_id'] = self.course.course_name
