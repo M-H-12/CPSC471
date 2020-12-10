@@ -13,12 +13,10 @@ function Student(props) {
 	} = props;
 
 	return (
-		<div className="card h-100" style={{ width: "18rem" }}>
+		<div className="card h-100" style={{ width: "20rem" }}>
 			<div className="card-body">
 				<h4 className="card-title text-center">{name}</h4>
-				<h5 className="text-muted font-weight-light">
-					{"SIN: " + sin}
-				</h5>
+				<h5 className="text-muted font-weight-light">{"ID: " + sin}</h5>
 				<h5 className="text-muted font-weight-light">
 					{"Gender: " + gender}
 				</h5>
@@ -34,14 +32,19 @@ function Student(props) {
 				<h5 className="card-text text-muted font-weight-light">
 					Course textbooks:{" "}
 				</h5>
-				<div>
+				<ul className="list-group p-2">
 					{signed_out_textbooks.map((signed_out_textbook) => (
-						<ul key={signed_out_textbook.isbn}>
-							<span>{signed_out_textbook.isbn}</span>{" "}
-							<span>{signed_out_textbook.title}</span>
-						</ul>
+						<li
+							className="list-group-item text-muted"
+							key={signed_out_textbook.isbn}
+						>
+							<div>ISBN: {signed_out_textbook.isbn}</div>
+							<div className="pl-2">
+								{signed_out_textbook.title}
+							</div>
+						</li>
 					))}
-				</div>
+				</ul>
 			</div>
 		</div>
 	);

@@ -12,7 +12,7 @@ function Homepage(props) {
 			<div className="container p-4">
 				<div className="row justify-content-center pt-3">
 					<h1 className="display-3 text-center">
-						High School Homepage
+						Learning Management and Student Information System
 					</h1>
 				</div>
 			</div>

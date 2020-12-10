@@ -10,35 +10,49 @@ function Course(props) {
 	} = props;
 
 	return (
-		<div className="card h-100" style={{ width: "18rem" }}>
+		<div className="card h-100 bg-muted" style={{ width: "20rem" }}>
 			<div className="card-body">
-				<h5 className="card-title">{course_id}</h5>
-				<h5 className="card-title">{course_name}</h5>
-				<p className="card-text">Offering: </p>
-				<div>
+				<h5 className="card-title text-center">
+					Course {course_id}: {course_name}
+				</h5>
+				<h5 className="text-muted font-weight-light">Offering: </h5>
+				<ul className="list-group p-2">
 					{offerings.map((offering) => (
-						<ul key={offering.offering_no}>
+						<li
+							className="list-group-item text-muted"
+							key={offering.offering_no}
+						>
 							{offering.offering_no}
-						</ul>
+						</li>
 					))}
-				</div>
-				<p className="card-text">Prerequisites: </p>
-				<div>
+				</ul>
+				<h5 className="text-muted font-weight-light">
+					Prerequisites:{" "}
+				</h5>
+				<ul className="list-group p-2">
 					{prerequisites.map((prerequisite) => (
-						<ul key={prerequisite.course_id}>
+						<li
+							className="list-group-item text-muted"
+							key={prerequisite.course_id}
+						>
 							{prerequisite.course_name}
-						</ul>
+						</li>
 					))}
-				</div>
-				<p className="card-text">Course textbooks: </p>
-				<div>
+				</ul>
+				<h5 className="text-muted font-weight-light">
+					Course textbooks:
+				</h5>
+				<ul className="list-group p-2">
 					{required_textbooks.map((required_textbook) => (
-						<ul key={required_textbook.isbn}>
+						<li
+							className="list-group-item text-muted"
+							key={required_textbook.isbn}
+						>
 							<span>{required_textbook.isbn}</span>{" "}
 							<span>{required_textbook.title}</span>
-						</ul>
+						</li>
 					))}
-				</div>
+				</ul>
 			</div>
 		</div>
 	);

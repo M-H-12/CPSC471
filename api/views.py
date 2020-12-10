@@ -23,6 +23,7 @@ class StudentDetailView(RetrieveAPIView):
     serializer_class = StudentSerializer
 
 
+# 1
 def course(request):
     try:
         content = json.loads(request.body)['content']
@@ -78,6 +79,7 @@ def course(request):
     return response
 
 
+# 2
 def teacher_office_hours(request):
     content = json.loads(request.body)['content']
 
@@ -103,6 +105,7 @@ def teacher_office_hours(request):
     return response
 
 
+# 3
 def teacher_can_teach(request):
     try:
         content = json.loads(request.body)['content']
@@ -129,6 +132,7 @@ def teacher_can_teach(request):
     return response
 
 
+# 4
 def course_textbook(request):
     try:
         content = json.loads(request.body)['content']
@@ -153,9 +157,10 @@ def course_textbook(request):
 
     response = JsonResponse({'error': "Request not met."})
     response.status_code = 405
-    return response
+    return response4
 
 
+# 1
 def teacher(request):
     try:
         content = json.loads(request.body)['content']
@@ -213,6 +218,7 @@ def teacher(request):
     return response
 
 
+# 2
 def offering_room(request):
     content = json.loads(request.body)['content']
 
@@ -237,6 +243,7 @@ def offering_room(request):
     return response
 
 
+# 3
 def offering_time(request):
     content = json.loads(request.body)['content']
 
@@ -265,6 +272,7 @@ def offering_time(request):
     return response
 
 
+# 4
 def offering(request):
     try:
         content = json.loads(request.body)['content']
@@ -314,6 +322,7 @@ def offering(request):
     return response
 
 
+# 1
 def prerequisite(request):
     try:
         content = json.loads(request.body)['content']
@@ -347,9 +356,8 @@ def prerequisite(request):
     return response
 
 
+# 2
 def admin(request):
-    return JsonResponse({'response': "success"})
-
     try:
         content = json.loads(request.body)['content']
     except KeyError:
@@ -359,7 +367,7 @@ def admin(request):
         person = Person.objects.get(pk=content['sin'])
         return JsonResponse({'response': "success", 'content': person.json_data()})
 
-    if request.method == "POST":
+    if request.method == "POST" and request.user.has_perm('api.change_admin'):
         try:
             administrator = Admin.objects.create(**content)
             administrator.full_clean()
@@ -396,7 +404,7 @@ def admin(request):
             administrator.delete()
             return JsonResponse({'error': e.message_dict})
 
-    if request.method == "PUT":
+    if request.method == "PUT" and request.user.has_perm('api.change_admin'):
         try:
             administrator = Admin.objects.get(pk=content['sin'])
         except Admin.DoesNotExist:
@@ -413,7 +421,7 @@ def admin(request):
         except ValidationError as e:
             return JsonResponse({'error': e.message_dict})
 
-    if request.method == "DELETE":
+    if request.method == "DELETE" and request.user.has_perm('api.change_admin'):
         try:
             administrator = Admin.objects.get(pk=content['sin'])
             administrator.delete()
@@ -429,6 +437,7 @@ def admin(request):
     return response
 
 
+# 3
 def assignment(request):
     try:
         content = json.loads(request.body)['content']
@@ -480,6 +489,7 @@ def assignment(request):
     return response
 
 
+# 4
 def material(request):
     try:
         content = json.loads(request.body)['content']
@@ -527,6 +537,7 @@ def material(request):
     return response
 
 
+# 1
 def student_textbook(request):
     content = json.loads(request.body)['content']
 
@@ -549,6 +560,7 @@ def student_textbook(request):
     return response
 
 
+# 2
 def student(request):
     content = json.loads(request.body)['content']
 
@@ -606,6 +618,7 @@ def student(request):
     return response
 
 
+# 3
 def textbook_author(request):
     content = json.loads(request.body)['content']
 
@@ -627,6 +640,7 @@ def textbook_author(request):
     return response
 
 
+# 4
 def textbook(request):
     inputInfo = json.loads(request.body)['content']
 
@@ -666,18 +680,19 @@ def textbook(request):
         try:
             textbook1 = Textbook.objects.get(book_no=inputInfo['book_no'], isbn=inputInfo['isbn'])
             textbook1.delete()
-            return JsonResponse("response: Success")
+            return JsonResponse({"response": "Success"})
         except Textbook.DoesNotExist:
-            return JsonResponse("error: Textbook with key:" + str(content['book_no']) +
-                                "," + str(content['isbn']) + " does not exist.")
+            return JsonResponse({"error: Textbook with key": + str(content['book_no']) +
+                                                             "," + str(content['isbn']) + " does not exist."})
         except ProtectedError:
-            return JsonResponse("error: Cannot delete textbook " + str(instance.id))
+            return JsonResponse({"error": "Cannot delete textbook " + str(instance.id)})
 
-    response = JsonResponse("error: Request not met.")
+    response = JsonResponse({"error": "Request not met."})
     response.status_code = 405
     return response
 
 
+# 1
 def counselor(request):
     try:
         content = json.loads(request.body)['content']
@@ -751,6 +766,7 @@ def counselor(request):
     return response
 
 
+# 2
 def counselor_office_hours(request):
     try:
         content = json.loads(request.body)['content']
@@ -809,6 +825,7 @@ def counselor_office_hours(request):
     return response
 
 
+# 3
 def counsels(request):
     try:
         content = json.loads(request.body)['content']
@@ -835,6 +852,7 @@ def counsels(request):
     return response
 
 
+# 4
 def room(request):
     try:
         content = json.loads(request.body)['content']
@@ -876,6 +894,7 @@ def room(request):
     return response
 
 
+# 1
 def schedule(request):
     content = json.loads(request.body)['content']
 
@@ -924,6 +943,7 @@ def getAllTeachers(request):
 
 def getAllCounselors(request):
     return JsonResponse({'response': list(map(lambda s: s.json_data(), Counselor.objects.all()))})
+
 
 def getAllAdmins(request):
     return JsonResponse({'response': list(map(lambda s: s.json_data(), Admin.objects.all()))})

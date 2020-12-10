@@ -4,7 +4,7 @@ function Navbar(props) {
 	return (
 		<nav className="navbar navbar-expand-lg navbar-light bg-primary">
 			<a className="navbar-brand" href="/">
-				CPSC 471 Final Project
+				LMSIS
 			</a>
 			<button
 				className="navbar-toggler"

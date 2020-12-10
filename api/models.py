@@ -9,6 +9,9 @@ class Person(PolymorphicModel):
     id = models.PositiveIntegerField()
     password = models.CharField(max_length=50)
 
+    class Meta:
+        ordering = ['sin']
+
     def json_data(self, **kwargs):
         person = {
             'sin': self.sin,
@@ -25,6 +28,9 @@ class Course(models.Model):
     course_name = models.CharField(max_length=255)
     parent = models.ForeignKey('self', related_name='prerequisites',
                                on_delete=models.SET_NULL, blank=True, null=True)
+
+    class Meta:
+        ordering = ['course_id']
 
     def json_data(self, include_prerequisites=False, **kwargs):
         course = {
@@ -49,7 +55,7 @@ class Student(Person):
             'year': self.year,
             'grade_average': self.grade_average,
             'credits_received': self.credits_received,
-            'signed_out_textbooks': list(map(lambda textbook: textbook.json_data(True), self.signed_out_textbooks.all()))
+            'signed_out_textbooks': list(map(lambda textbook: textbook.json_data(), self.signed_out_textbooks.all()))
         }
         json_data = super().json_data()
         json_data.update(students)
@@ -129,6 +135,9 @@ class Room(models.Model):
     room_no = models.PositiveIntegerField(primary_key=True)
     max_capacity = models.PositiveIntegerField()  # TODO Set maximum
 
+    class Meta:
+        ordering = ['room_no']
+
     def json_data(self):
         room = {
             'room_no': self.room_no,
@@ -147,6 +156,7 @@ class Offering(models.Model):
 
     class Meta:
         unique_together = ('course', 'offering_no',)
+        ordering = ['offering_no']
 
     def json_data(self, include_course_info=False, include_room=False, **kwargs):
         offering = {
