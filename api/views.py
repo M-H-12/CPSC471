@@ -210,8 +210,6 @@ def teacher(request):
         except ValidationError as e:
             teacher.delete()
             return JsonResponse({'error': e.message_dict})
-        except IntegrityError:
-            return JsonResponse({'error': "Teacher could not be created."})
 
     response = JsonResponse({'error': "Request not met."})
     response.status_code = 405
@@ -626,8 +624,8 @@ def textbook_author(request):
     if request.method == "DELETE" and request.user.has_perm('api.change_admin'):
         textbook = Textbook.objects.get(isbn=content['isbn'], book_no=content['book_no'])
         textbook_author = TextbookAuthor.objects.get(textbook=textbook, author=content['author'])
-        textbook_author.textbook = None
-        textbook_author.save()
+        textbook_author.delete()
+        return JsonResponse({'response': 'Textbook_author deleted.'})
 
     response = JsonResponse({"error": "Request not met."})
     response.status_code = 405
