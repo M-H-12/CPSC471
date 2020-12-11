@@ -1,12 +1,15 @@
 from django.db import models
 from polymorphic.models import PolymorphicModel
+from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
 
 
 class Person(PolymorphicModel):
-    sin = models.PositiveIntegerField(primary_key=True)  # FIXME Restrict to only being 9 in length
+    sin = models.PositiveIntegerField(primary_key=True, validators=[MinValueValidator(100000000),
+                                                                    MaxValueValidator(999999999)])
     name = models.CharField(max_length=255)
     gender = models.CharField(max_length=1)
-    id = models.PositiveIntegerField()
+    id = models.PositiveIntegerField(unique=True)
     password = models.CharField(max_length=50)
 
     class Meta:
@@ -47,7 +50,7 @@ class Course(models.Model):
 
 class Student(Person):
     year = models.PositiveSmallIntegerField()
-    grade_average = models.FloatField()
+    grade_average = models.FloatField(validators=[MinValueValidator(0), MaxValueValidator(200)])
     credits_received = models.PositiveIntegerField()
 
     def json_data(self, **kwargs):
@@ -64,7 +67,7 @@ class Student(Person):
 
 class Counselor(Person):
     counsels = models.ManyToManyField(Student, blank=True)
-    salary = models.FloatField()
+    salary = models.FloatField(validators=[MinValueValidator(0)])
     hired_year = models.PositiveIntegerField(editable=False)
     hired_date = models.PositiveIntegerField(editable=False)
     hired_month = models.CharField(editable=False, max_length=9, blank=False)
@@ -85,8 +88,8 @@ class Counselor(Person):
 class CounselorOfficeHour(models.Model):
     counselor = models.ForeignKey(Counselor, related_name='officehours', on_delete=models.CASCADE)
     day = models.CharField(max_length=9)
-    hour_from = models.PositiveSmallIntegerField()  # TODO Make sure hour_from and hour_to are <= 23
-    hour_to = models.PositiveSmallIntegerField()
+    hour_from = models.PositiveSmallIntegerField(validators=[MinValueValidator(0), MaxValueValidator(23)])
+    hour_to = models.PositiveSmallIntegerField(validators=[MinValueValidator(0), MaxValueValidator(23)])
 
     def json_data(self, **kwargs):
         json_data = {
@@ -98,7 +101,7 @@ class CounselorOfficeHour(models.Model):
 
 
 class Teacher(Person):
-    salary = models.FloatField()
+    salary = models.FloatField(validators=[MinValueValidator(0)])
     hired_year = models.PositiveIntegerField(editable=False)
     hired_date = models.PositiveIntegerField(editable=False)
     hired_month = models.CharField(editable=False, max_length=9, blank=False)
@@ -119,8 +122,8 @@ class Teacher(Person):
 class TeacherOfficeHour(models.Model):
     teacher = models.ForeignKey(Teacher, related_name='officehours', on_delete=models.CASCADE)
     day = models.CharField(max_length=9)
-    hour_from = models.PositiveSmallIntegerField()  # TODO Make sure hour_from and hour_to are <= 23
-    hour_to = models.PositiveSmallIntegerField()
+    hour_from = models.PositiveSmallIntegerField(validators=[MinValueValidator(0), MaxValueValidator(23)])
+    hour_to = models.PositiveSmallIntegerField(validators=[MinValueValidator(0), MaxValueValidator(23)])
 
     def json_data(self, **kwargs):
         json_data = {
@@ -133,7 +136,7 @@ class TeacherOfficeHour(models.Model):
 
 class Room(models.Model):
     room_no = models.PositiveIntegerField(primary_key=True)
-    max_capacity = models.PositiveIntegerField()  # TODO Set maximum
+    max_capacity = models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(500)])
 
     class Meta:
         ordering = ['room_no']
@@ -151,7 +154,7 @@ class Room(models.Model):
 class Offering(models.Model):
     course = models.ForeignKey(Course, related_name='offerings', on_delete=models.CASCADE)
     offering_no = models.PositiveIntegerField()
-    no_of_students = models.PositiveIntegerField()
+    no_of_students = models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(500)])
     room = models.ForeignKey(Room, related_name="timeslots", on_delete=models.SET_NULL, blank=True, null=True)
 
     class Meta:
@@ -174,8 +177,8 @@ class Offering(models.Model):
 class OfferingDayAndTime(models.Model):
     offering = models.ForeignKey(Offering, related_name='times', on_delete=models.CASCADE)
     day = models.CharField(max_length=9)
-    hour_from = models.PositiveSmallIntegerField()  # TODO Make sure hour_from and hour_to are <= 23
-    hour_to = models.PositiveSmallIntegerField()
+    hour_from = models.PositiveSmallIntegerField(validators=[MinValueValidator(0), MaxValueValidator(23)])
+    hour_to = models.PositiveSmallIntegerField(validators=[MinValueValidator(0), MaxValueValidator(23)])
 
     def json_data(self, **kwargs):
         offering_day_and_time = {
@@ -188,7 +191,7 @@ class OfferingDayAndTime(models.Model):
 
 class Admin(Person):
     position_title = models.CharField(max_length=255)
-    salary = models.FloatField()
+    salary = models.FloatField(validators=[MinValueValidator(0)])
     hired_year = models.PositiveIntegerField(editable=False)
     hired_date = models.PositiveIntegerField(editable=False)
     hired_month = models.CharField(editable=False, max_length=9, blank=False)
@@ -205,11 +208,12 @@ class Admin(Person):
 
 
 class Textbook(models.Model):
-    isbn = models.IntegerField(primary_key=True)  # TODO Set length to 10
-    book_no = models.IntegerField()
+    isbn = models.IntegerField(primary_key=True, validators=[MinValueValidator(1000000000),
+                                                             MaxValueValidator(9999999999)])
+    book_no = models.PositiveIntegerField()
     title = models.CharField(max_length=255)
-    year = models.IntegerField()  # TODO Set length to 4
-    edition = models.IntegerField()
+    year = models.IntegerField()
+    edition = models.PositiveIntegerField()
     course = models.ForeignKey(Course, related_name='required_textbooks', on_delete=models.SET_NULL, blank=True,
                                null=True)
     student = models.ForeignKey(Student, related_name='signed_out_textbooks', on_delete=models.SET_NULL, blank=True,
@@ -295,5 +299,3 @@ class Schedule(models.Model):
         json_data = self.offering.json_data(include_course_info=True, include_room=False)
         json_data.update(schedule)
         return json_data
-
-

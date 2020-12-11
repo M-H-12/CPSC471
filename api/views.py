@@ -265,7 +265,7 @@ def offering_time(request):
                                                        hour_from=content['hour_from'],
                                                        hour_to=content['hour_to'])
         offering_time.delete()
-        return JsonResponse({'response': 'offering_time created', 'content': offering.json_data(True)})
+        return JsonResponse({'response': 'offering_time deleted', 'content': offering.json_data(True)})
 
     response = JsonResponse({"error": "request not met."})
     response.status_code = 405
@@ -303,8 +303,6 @@ def offering(request):
         except ValidationError as e:
             offering.delete()
             return JsonResponse({'error': e.message_dict})
-        except IntegrityError:
-            return JsonResponse({'error': "Offering could not be created."})
 
     # NOTE No update because we dont want any editing of offering
 
@@ -367,7 +365,7 @@ def admin(request):
         person = Person.objects.get(pk=content['sin'])
         return JsonResponse({'response': "success", 'content': person.json_data()})
 
-    if request.method == "POST" and request.user.has_perm('api.change_admin'):
+    if request.method == "POST":
         try:
             administrator = Admin.objects.create(**content)
             administrator.full_clean()
@@ -408,7 +406,7 @@ def admin(request):
         try:
             administrator = Admin.objects.get(pk=content['sin'])
         except Admin.DoesNotExist:
-            return JsonResponse({"error": "Admin with id: " + str(content['sin']) + " does not exist."})
+            return JsonResponse({"error": "Admin with sin: " + str(content['sin']) + " does not exist."})
         except KeyError:
             return JsonResponse({"error": "No sin included"})
 
@@ -429,8 +427,6 @@ def admin(request):
             return JsonResponse({'response': 'success'})
         except Admin.DoesNotExist:
             return JsonResponse({"error": "Admin with sin " + str(content['sin']) + " does not exist."})
-        except ProtectedError:
-            return {'error': "Couldn't delete object " + str(instance.id)}
 
     response = JsonResponse({'error': "Request not met."})
     response.status_code = 405
@@ -555,7 +551,7 @@ def student_textbook(request):
         textbook.save()
         return JsonResponse({'response': 'Student textbook deleted.'})
 
-    response = JsonResponse("error: Request not met.")
+    response = JsonResponse({"error": " Request not met."})
     response.status_code = 405
     return response
 
@@ -610,8 +606,6 @@ def student(request):
             return JsonResponse({"response": "success"})
         except Student.DoesNotExist:
             return JsonResponse({"error": "Student with SIN: " + str(content['sin']) + " does not exist."})
-        except ProtectedError:
-            return JsonResponse({"error": "Cannot delete student " + str(instance.id)})
 
     response = JsonResponse({"error": "request not met."})
     response.status_code = 405
@@ -635,7 +629,7 @@ def textbook_author(request):
         textbook_author.textbook = None
         textbook_author.save()
 
-    response = JsonResponse("error: Request not met.")
+    response = JsonResponse({"error": "Request not met."})
     response.status_code = 405
     return response
 
@@ -671,7 +665,7 @@ def textbook(request):
             textbook.save()
             return JsonResponse({"response": textbook.json_data()})
         except ValidationError as e:
-            textbook.delete()  # FIXME if sin not provided, the object will still be created (we can't delete it)
+            textbook.delete()
             return JsonResponse({'error': e.message_dict})
         except IntegrityError:
             return JsonResponse({'error': "Object could not be created."})
@@ -682,10 +676,8 @@ def textbook(request):
             textbook1.delete()
             return JsonResponse({"response": "Success"})
         except Textbook.DoesNotExist:
-            return JsonResponse({"error: Textbook with key": + str(content['book_no']) +
-                                                             "," + str(content['isbn']) + " does not exist."})
-        except ProtectedError:
-            return JsonResponse({"error": "Cannot delete textbook " + str(instance.id)})
+            return JsonResponse({"error": "Textbook with key: " + str(content['book_no']) +
+                                          "," + str(content['isbn']) + " does not exist."})
 
     response = JsonResponse({"error": "Request not met."})
     response.status_code = 405
@@ -704,9 +696,7 @@ def counselor(request):
             counselor = Counselor.objects.get(pk=content['sin'])
             return JsonResponse({'response': "success", 'content': counselor.json_data()})
         except Counselor.DoesNotExist:
-            return JsonResponse({"error": "Counselor with id " + str(content['sin']) + " does not exist."})
-        except KeyError:
-            return JsonResponse({"error": "No id included"})
+            return JsonResponse({"error": "Counselor with sin " + str(content['sin']) + " does not exist."})
 
     if request.method == "POST" and request.user.has_perm('api.change_admin'):
         try:
@@ -739,9 +729,9 @@ def counselor(request):
         try:
             counselor = Counselor.objects.get(pk=content['sin'])
         except Counselor.DoesNotExist:
-            return JsonResponse({"error": "Counselor with id " + str(content['sin']) + " does not exist."})
+            return JsonResponse({"error": "Counselor with sin " + str(content['sin']) + " does not exist."})
         except KeyError:
-            return JsonResponse({"error": "No id included"})
+            return JsonResponse({"error": "No sin included"})
 
         try:
             for attr, value in content.items():
@@ -759,7 +749,7 @@ def counselor(request):
             User.objects.get(username=content['sin']).delete()
             return JsonResponse({'response': str(counselor.name) + ' has been deleted.'})
         except Counselor.DoesNotExist:
-            return JsonResponse({"error": "Counselor with id " + str(content['sin']) + " does not exist."})
+            return JsonResponse({"error": "Counselor with sin " + str(content['sin']) + " does not exist."})
 
     response = JsonResponse({'error': "Request not met."})
     response.status_code = 405
@@ -775,13 +765,13 @@ def counselor_office_hours(request):
 
     if request.method == "GET":
         try:
-            office_hours = CounselorOfficeHour.objects.get(counselor_id=content['counselor_id'])
+            office_hours = CounselorOfficeHour.objects.get(counselor_sin=content['counselor_sin'])
             return JsonResponse({'response': "success", 'content': office_hours.json_data()})
         except CounselorOfficeHour.DoesNotExist:
             return JsonResponse(
-                {"error": "Counselor with id " + str(content['counselor_id']) + " does not have any office hours."})
+                {"error": "Counselor with sin " + str(content['counselor_sin']) + " does not have any office hours."})
         except KeyError:
-            return JsonResponse({"error": "No id included"})
+            return JsonResponse({"error": "No sin included"})
 
     if request.method == "POST" and request.user.has_perm('api.change_counselor'):
         try:
@@ -797,11 +787,11 @@ def counselor_office_hours(request):
 
     if request.method == "PUT" and request.user.has_perm('api.change_counselor'):
         try:
-            office_hours = CounselorOfficeHour.objects.get(counselor_id=content['counselor_id'])
+            office_hours = CounselorOfficeHour.objects.get(counselor_sin=content['counselor_sin'])
         except CounselorOfficeHour.DoesNotExist:
-            return JsonResponse({"error": "Counselor with id " + str(content['counselor_id']) + " does not exist."})
+            return JsonResponse({"error": "Counselor with sin " + str(content['counselor_sin']) + " does not exist."})
         except KeyError:
-            return JsonResponse({"error": "No id included"})
+            return JsonResponse({"error": "No sin included"})
 
         try:
             for attr, value in content.items():
@@ -814,11 +804,11 @@ def counselor_office_hours(request):
 
     if request.method == "DELETE" and request.user.has_perm('api.change_counselor'):
         try:
-            office_hours = CounselorOfficeHour.objects.get(counselor_id=content['counselor_id'])
+            office_hours = CounselorOfficeHour.objects.get(counselor_sin=content['counselor_sin'])
             office_hours.delete()
-            return JsonResponse({'response': str(office_hours.id) + ' has been deleted.'})
+            return JsonResponse({'response': 'success'})
         except CounselorOfficeHour.DoesNotExist:
-            return JsonResponse({"error": "Counselor with id " + str(content['counselor_id']) + " does not exist."})
+            return JsonResponse({"error": "Counselor with sin " + str(content['counselor_sin']) + " does not exist."})
 
     response = JsonResponse({'error': "Request not met."})
     response.status_code = 405
