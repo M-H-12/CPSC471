@@ -4,7 +4,7 @@
 We have built a backend and a small portion of our proposed front end.
 Thus, to see both you have to have two different consoles.
 
-##Required prerequisites
+## Required prerequisites
 - Python
 - Django
 - django-polymorphic
