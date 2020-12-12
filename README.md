@@ -19,6 +19,28 @@ that we never realized, that others might not have.
 However, in summary, install all prerequisites needed to run a Bootstrap React and Django app,
 with django-polymorphism
 
+##Creating the database
+
+So we have already provided you with the empty database tables, but if you want to
+completely create a new database you would have to do 3 things:
+1. Delete the db.sqlite3 file
+2. In ./api/migrations, delete all files within the directory *EXCEPT FOR _init_.py*
+3. Now, open the console within the outer CPSC471 directory, that contains all
+of our files, and write
+````
+python manage.py makemigrations
+````
+then
+````
+python manage.py migrate
+````
+
+Now you will have a new db.sqlite3 file and have a file in migrations *0001_initial.py*
+
+Note: This database will be empty, so you have to populate it on your own, starting with creating an admin,
+which, after you login with an admin account, you can then use any api in our program.
+
+
 ##Running backend Django
 Open a console, within the same directory that contains this README.md file
 
