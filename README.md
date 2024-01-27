@@ -19,7 +19,7 @@ that we never realized, that others might not have.
 However, in summary, install all prerequisites needed to run a Bootstrap React and Django app,
 with django-polymorphism
 
-##Creating the database
+## Creating the database
 
 So we have already provided you with the empty database tables, but if you want to
 completely create a new database you would have to do 3 things:
