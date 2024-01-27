@@ -13,7 +13,7 @@ Thus, to see both you have to have two different consoles.
 - Bootstrap
 
 If you have any other problems with running the problem you can email Bryce Cayanan at
-*bryce.cayanan1@ucalgary.ca*, cause our group might have some software already installed,
+*bryce.cayanan1@ucalgary.ca*, because our group might have some software already installed,
 that we never realized, that others might not have. 
 
 However, in summary, install all prerequisites needed to run a Bootstrap React and Django app,
@@ -41,7 +41,7 @@ Note: This database will be empty, so you have to populate it on your own, start
 which, after you login with an admin account, you can then use any api in our program.
 
 
-##Running backend Django
+## Running backend Django
 Open a console, within the same directory that contains this README.md file
 
 Write out "source venv\Scripts\activate" to start your virtual environment. Then, 
@@ -72,7 +72,7 @@ Then, write the line: "npm run start", hit to start up the website. You will see
 
 Then press enter again, and the website will automatically popup.
 
-##Postman requests
+## Postman requests
 When making postman requests, make sure the cookies have session_id within it, because
 we use Django's session and authentication software for how we restrict access for different
 users
